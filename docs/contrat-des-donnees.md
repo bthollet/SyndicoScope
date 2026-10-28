@@ -156,6 +156,7 @@ La « dernière mise à jour » la plus récente dans la quotidienne du 28/10/20
 - Aucun nom de représentant non professionnel : il est retiré à la lecture du fichier, avant toute écriture sur disque.
 - Rien qui mène à un entrepreneur individuel, ni à un syndic que l'annuaire ne connaît pas : ni nom, ni SIREN, ni SIRET, ni lieu, ni date de création, ni annonce (§ 11).
 - Aucune date de fin de mandat par copropriété, aucun état de mandat : seulement des drapeaux dérivés.
+- Des annonces du BODACC, seulement la date, le type et, pour une procédure collective, la nature du jugement. Une annonce n'est rattachée à un syndic que si son champ `registre` porte son SIREN, chiffres normalisés (règle du 28/10/2026) ; son `id`, son `registre` et son `commercant` restent dans le cache local, pour le contrôle, jamais dans un fichier publié. Le registre du BODACC peut lui-même se tromper : une procédure collective du 08/09/2011 porte au registre le SIREN d'un syndic des Bouches-du-Rhône qui publie encore, et au champ commercant une autre société. Rattachement à revoir, à trancher.
 - Aucun jeu complémentaire dans le dépôt public tant que le verrou de publication n'est pas levé (§ 12).
 - Le journal détaillé (`journal.txt`, qui cite des SIRET) reste dans l'exécuteur. Les messages de contrôle n'en citent aucun, parce que le journal d'Actions d'un dépôt public est public.
 

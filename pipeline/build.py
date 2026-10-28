@@ -344,7 +344,9 @@ def composer(dep, sortie, date_txt, exemple, ex, infos, din, bod, geo, zones, na
                 "familles": {k: v["n"] for k, v in b["familles"].items()},
                 "premiere": min((v["premiere"] for v in b["familles"].values() if v["premiere"]), default=None),
                 "derniere": max((v["derniere"] for v in b["familles"].values() if v["derniere"]), default=None),
-                "procedures": b["procedures"], "radiations": [x["date"] for x in b["radiations"]],
+                # id, registre et commercant restent dans le cache (contrôle du rattachement) : jamais publiés
+                "procedures": [{k: x.get(k, "") for k in ("date", "type", "nature")} for x in b["procedures"]],
+                "radiations": [x["date"] for x in b["radiations"]],
                 "achats": len(b["achats"]), "dernier_achat": max((x["date"] for x in b["achats"]), default=None),
                 "heure": b.get("heure")},
             "national": {"copros_siret": (nat_siret.get(s) or [0, 0])[0], "lots_siret": (nat_siret.get(s) or [0, 0])[1],

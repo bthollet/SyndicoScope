@@ -8,6 +8,15 @@ ces annonces sont donc des achats de fonds, une information et non une alerte.
 
 Seules les procédures collectives sont une alerte. Rien n'est lu de `listepersonnes` ni du
 complément de jugement (noms de personnes) : on ne garde que la date, la famille et la nature.
+
+Rattachement (règle du 28/10/2026) : une annonce n'est rattachée à un SIREN que si son champ
+`registre` le porte, chiffres normalisés ; une mention du numéro dans le texte ne suffit pas, une
+concordance de nom non plus. La requête `registre like "<SIREN>"` ne rend que celles-là (mesuré :
+ni préfixe ni suffixe ne répondent) ; le contrôle est refait sur chaque annonce détaillée, qui
+garde dans le cache son `id`, son `registre` et son `commercant` (dénomination, ou nom d'une
+personne) pour qu'on puisse la vérifier. Ces trois champs ne sont jamais publiés. Le registre
+lui-même peut se tromper : le 08/09/2011, une procédure collective porte au registre le SIREN d'un
+syndic qui publie encore, et au champ commercant une autre société.
 """
 import json
 import re
@@ -16,6 +25,14 @@ import urllib.parse
 from commun import horodatage
 
 URL = "https://www.bodacc.fr/api/explore/v2.1/catalog/datasets/annonces-commerciales/records"
+FORMAT = 2   # 2 : annonces détaillées contrôlées sur `registre`, avec id, registre et commercant (28/10/2026)
+FAMILLES_DETAILLEES = r"collective|radiation|vente|cession"
+
+
+def porte_siren(registre, siren):
+    """Vrai si l'une des valeurs du champ `registre` est ce SIREN, chiffres normalisés."""
+    valeurs = registre if isinstance(registre, list) else [registre]
+    return any(re.sub(r"\D", "", str(v or "")) == siren for v in valeurs)
 
 
 def _q(params):
@@ -54,15 +71,28 @@ def annonces_siren(client, siren):
            "procedures": [], "radiations": [], "achats": [], "depots": []}
     if any(re.search(r"d[ée]p[ôo]t", f, re.I) for f in familles):
         res["depots"] = depots_des_comptes(client, siren)
-    cibles = [f for f in familles if re.search(r"collective|radiation|vente|cession", f, re.I)]
+    return details(client, res)
+
+
+def details(client, res):
+    """Annonces datées des familles détaillées d'une réponse (procédures collectives, radiations, ventes et
+    cessions), contrôlées une à une sur `registre` ; remplace celles de `res` et le rend. Sert aussi à
+    compléter une réponse en cache d'un format antérieur (une requête)."""
+    siren = res["siren"]
+    res.update({"procedures": [], "radiations": [], "achats": [], "ecartees": 0, "format": FORMAT})
+    cibles = [f for f in res["familles"] if re.search(FAMILLES_DETAILLEES, f, re.I)]
     if not cibles:
         return res
-    w2 = where + " and (" + " or ".join('familleavis_lib="%s"' % f for f in cibles) + ")"
-    url2 = _q({"where": w2, "select": "dateparution,familleavis_lib,typeavis_lib,jugement",
+    w2 = 'registre like "%s" and (%s)' % (siren, " or ".join('familleavis_lib="%s"' % f for f in cibles))
+    url2 = _q({"where": w2, "select": "id,dateparution,familleavis_lib,typeavis_lib,jugement,registre,commercant",
                "order_by": "dateparution", "limit": 100})
     for r in client.get_json(url2).get("results", []):
+        if not porte_siren(r.get("registre"), siren):
+            res["ecartees"] += 1
+            continue
         fam = r.get("familleavis_lib") or ""
-        item = {"date": (r.get("dateparution") or "")[:10], "type": r.get("typeavis_lib") or ""}
+        item = {"date": (r.get("dateparution") or "")[:10], "type": r.get("typeavis_lib") or "",
+                "id": r.get("id"), "registre": r.get("registre"), "commercant": r.get("commercant")}
         if re.search(r"collective", fam, re.I):
             nature = ""
             jg = r.get("jugement")
