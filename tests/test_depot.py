@@ -17,8 +17,10 @@ sys.path.insert(0, os.path.join(RACINE, "scripts"))
 import verifier_secrets   # noqa: E402
 # Page « Contentieux des copropriétés à Marseille », publiée telle quelle sur GitHub Pages depuis docs/ :
 # exception connue à la règle des 1 Mo et des fichiers de données, à trancher (voir docs/contrat-des-donnees.md).
+# Page du 13 à la racine du site (décision de Brice, 28/10/2026, 20 h 16) : page autonome, données et jeux
+# complémentaires intégrés, assemblée sur le poste ; même exception, jusqu'au déploiement par le flux.
 EXCEPTIONS = {"docs/jurisprudence/index.html", "docs/jurisprudence/donnees/decisions_releve.csv",
-              "docs/jurisprudence/donnees/correspondance_syndics.csv"}
+              "docs/jurisprudence/donnees/correspondance_syndics.csv", "docs/index.html"}
 EXTENSIONS_DONNEES = (".csv", ".tsv", ".parquet", ".zip", ".gz", ".7z", ".sqlite", ".db")
 
 
