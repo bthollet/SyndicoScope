@@ -167,6 +167,7 @@ La « dernière mise à jour » la plus récente dans la quotidienne du 28/10/20
   - les achats de fonds (`achats`, `dernier_achat`) sont lus dans les comptes par famille : une information, pas une alerte, sans contrôle du commercant.
 - Aucun jeu complémentaire dans le dépôt public tant que le verrou de publication n'est pas levé (§ 12).
 - Le journal détaillé (`journal.txt`, qui cite des SIRET) reste dans l'exécuteur. Les messages de contrôle n'en citent aucun, parce que le journal d'Actions d'un dépôt public est public.
+- Aucune donnée brute d'API (BODACC, annuaire des entreprises, registre des copropriétés) dans le cache d'Actions ni dans un artefact d'Actions (décision du 28/10/2026) : le flux mensuel moissonne à neuf à chaque passage, et une relance refait tout le moissonnage ; son seul artefact est le site publié. Le manifest du mois précédent, pour le contrôle des écarts, est relu sur le site publié. Il n'y a pas de flux de pull request ; s'il en vient un, il tourne sur des jeux fictifs, sans réseau vers ces API (les essais unitaires n'en appellent aucune). Le cache local du poste, hors dépôt, reste permis.
 
 ## 10. `meta.maj` : l'ancienneté des fiches
 

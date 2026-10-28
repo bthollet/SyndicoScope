@@ -24,6 +24,7 @@ Plusieurs départements, ou la France, par un passage en flux sur les deux fichi
   Écrit dans <sortie> :
     cache/                       commun à tous les départements : annuaire (un SIRET, un appel), BODACC
                                  (un SIREN, un appel), contours simplifiés ; repris d'une exécution à l'autre
+                                 sur le poste, jamais dans le cache d'Actions (le flux mensuel moissonne à neuf)
     departements/                répartition des deux fichiers nationaux (repartition.json, immats.tsv,
                                  national_par_siret.json) ; par département, <code>/cache/ (extraits),
                                  donnees.json, contours.json, indicateurs_departement.json

@@ -7,6 +7,10 @@
 # Aucun secret n'est nécessaire : PISTE n'est pas appelé ici.
 # Les journaux d'Actions d'un dépôt public sont publics : build.py n'y écrit que des comptes et des
 # étapes ; son journal détaillé (journal.txt, qui cite des SIRET) reste dans l'exécuteur.
+# Aucune donnée brute d'API (BODACC, annuaire des entreprises, registre) ne vit dans le cache
+# d'Actions ni dans un artefact (décision du 28/10/2026) : chaque passage moissonne à neuf, et le
+# seul artefact est le site publié. Pas de flux de pull request : s'il en vient un, il ne lance que
+# les essais unitaires, sur des jeux fictifs, sans réseau vers ces API.
 name: Mise à jour des données
 
 on:
@@ -19,9 +23,9 @@ on:
         required: false
         default: ""
       budget_appels:
-        description: "Minutes d'appels à l'annuaire et au BODACC, au plus"
+        description: "Minutes d'appels à l'annuaire et au BODACC, au plus (moissonnage complet : 110 environ)"
         required: false
-        default: "150"
+        default: "200"
 
 permissions:
   contents: read
@@ -34,7 +38,7 @@ jobs:
   construire:
     if: github.repository == 'bthollet/SyndicoScope'
     runs-on: ubuntu-24.04
-    timeout-minutes: 240
+    timeout-minutes: 330
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:
@@ -44,30 +48,25 @@ jobs:
         with:
           python-version: "3.12"
 
-      # Réponses de l'annuaire et du BODACC (un SIRET, un SIREN, un appel), contours simplifiés et
-      # manifest du mois précédent : repris d'une exécution à l'autre, même après un échec.
-      - name: Restaurer le cache des appels
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
-        with:
-          path: build/national/cache
-          key: appels-${{ github.run_id }}-${{ github.run_attempt }}
-          restore-keys: appels-
-
       - name: Essais unitaires
         run: python -X utf8 -I -m unittest discover -s tests -v
 
+      # Le manifest du mois précédent, pour le contrôle des écarts, est relu sur le site publié :
+      # une donnée publiée, pas une réponse d'API. Absent (premier passage, déploiement fermé) :
+      # pas de comparaison, et le contrôle le dit.
       - name: Construire et contrôler
         env:
           DEPARTEMENTS: ${{ inputs.departements }}
-          BUDGET: ${{ inputs.budget_appels || '150' }}
+          BUDGET: ${{ inputs.budget_appels || '200' }}
         run: |
           if [ -n "$DEPARTEMENTS" ]; then QUI="--departements $DEPARTEMENTS"; else QUI="--tous"; fi
+          PUBLIE="https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}/carte/manifest.json"
           PRECEDENT=""
-          if [ -f build/national/cache/precedent/manifest.json ]; then
-            PRECEDENT="--precedent build/national/cache/precedent/manifest.json"
+          mkdir -p build/precedent
+          if [ -z "$DEPARTEMENTS" ] && curl -fsS --max-time 60 -o build/precedent/manifest.json "$PUBLIE"; then
+            PRECEDENT="--precedent build/precedent/manifest.json"
           fi
-          python -X utf8 -I pipeline/build.py $QUI --sortie build/national \
-            --rafraichir-jours 25 --budget-appels "$BUDGET" $PRECEDENT
+          python -X utf8 -I pipeline/build.py $QUI --sortie build/national --budget-appels "$BUDGET" $PRECEDENT
 
       - name: Résumé des contrôles
         if: always()
@@ -75,19 +74,6 @@ jobs:
           if [ -f build/national/controles.json ]; then
             python -X utf8 -I -c "import json; [print(c['resultat'], '|', c['controle']) for c in json.load(open('build/national/controles.json', encoding='utf-8'))]"
           fi
-
-      - name: Garder le manifest pour le contrôle du mois suivant
-        if: success() && inputs.departements == ''
-        run: |
-          mkdir -p build/national/cache/precedent
-          cp build/national/site/manifest.json build/national/cache/precedent/manifest.json
-
-      - name: Sauver le cache des appels
-        if: always()
-        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
-        with:
-          path: build/national/cache
-          key: appels-${{ github.run_id }}-${{ github.run_attempt }}
 
       # Le site publié : la page d'accueil et la jurisprudence (docs/), les données nationales sous carte/.
       - name: Assembler le site
@@ -135,5 +121,5 @@ jobs:
           if [ -n "$N" ]; then
             gh issue comment "$N" --repo "$REPO" --body "Nouvel échec : $EXECUTION"
           else
-            gh issue create --repo "$REPO" --title "$TITRE" --body "L'exécution $EXECUTION s'est arrêtée : contrôle bloquant en échec, budget d'appels épuisé ou erreur. Rien n'a été publié. L'étape « Résumé des contrôles » dit lequel. Relancer à la main reprend les appels déjà faits (cache gardé)."
+            gh issue create --repo "$REPO" --title "$TITRE" --body "L'exécution $EXECUTION s'est arrêtée : contrôle bloquant en échec, budget d'appels épuisé ou erreur. Rien n'a été publié. L'étape « Résumé des contrôles » dit lequel. Une relance à la main refait tout le moissonnage : aucun cache n'est gardé d'un passage à l'autre."
           fi
