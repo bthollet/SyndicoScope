@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SyndicoScope</title>
+<meta name="description" content="SyndicoScope : les syndics de copropriété vus par les données publiques.">
+<style>
+:root { color-scheme: light; --page: #EDF1F2; --surface: #FFFFFF; --ink: #13232B; --ink-2: #41545C; --line: #D3DCDF; --accent: #1A5A6E; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { color-scheme: dark; --page: #0D1417; --surface: #141D21; --ink: #E6EDEF; --ink-2: #B3C2C7; --line: #27353B; --accent: #7CC6D8; } }
+:root[data-theme="dark"] { color-scheme: dark; --page: #0D1417; --surface: #141D21; --ink: #E6EDEF; --ink-2: #B3C2C7; --line: #27353B; --accent: #7CC6D8; }
+body { margin: 0; background: var(--page); color: var(--ink); font: 400 1rem/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+main { max-width: 760px; margin: 0 auto; padding: 48px 16px; }
+h1 { font-size: 2rem; margin: 0 0 8px; }
+p { color: var(--ink-2); }
+a.carte { display: block; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 18px 20px; margin-top: 20px; color: var(--ink); text-decoration: none; }
+a.carte:hover, a.carte:focus-visible { border-color: var(--accent); outline: none; }
+a.carte b { color: var(--accent); font-size: 1.15rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>SyndicoScope</h1>
+  <p>Les syndics de copropriété vus par les données publiques. Prototype en construction.</p>
+  <a class="carte" href="jurisprudence/"><b>Contentieux des copropriétés à Marseille</b><br>Décisions de justice publiées : syndics, avocats, délais, carte des portefeuilles. Premier jet du 28/10/2026.</a>
+</main>
+</body>
+</html>
