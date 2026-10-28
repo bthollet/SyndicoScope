@@ -1,0 +1,12 @@
+#!/bin/sh
+# Crochet pre-commit de SyndicoScope : refuse un commit qui indexe un secret.
+# Activation, une fois par clone :  git config core.hooksPath scripts/hooks
+# Motifs propres au poste (facultatif, jamais versionnés) :
+#   git config syndicoscope.motifsLocaux <chemin d'un fichier hors du dépôt ou ignoré>
+PY=python
+command -v "$PY" >/dev/null 2>&1 || PY=python3
+MOTIFS=$(git config --get syndicoscope.motifsLocaux)
+if [ -n "$MOTIFS" ]; then
+  exec "$PY" -X utf8 -I scripts/verifier_secrets.py --indexe --motifs "$MOTIFS"
+fi
+exec "$PY" -X utf8 -I scripts/verifier_secrets.py --indexe

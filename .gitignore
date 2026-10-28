@@ -1,0 +1,24 @@
+# Données téléchargées ou générées : jamais dans le dépôt
+build/
+data/
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Secrets et réglages propres à un poste
+.env
+.env.*
+.local/
+*.pem
+*.key
+*.p12
+*.pfx
+piste*.txt
+
+# Éditeurs et systèmes
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini

@@ -1,0 +1,9 @@
+#!/bin/sh
+# Crochet commit-msg de SyndicoScope : le message de commit passe au même vérificateur.
+PY=python
+command -v "$PY" >/dev/null 2>&1 || PY=python3
+MOTIFS=$(git config --get syndicoscope.motifsLocaux)
+if [ -n "$MOTIFS" ]; then
+  exec "$PY" -X utf8 -I scripts/verifier_secrets.py --message "$1" --motifs "$MOTIFS"
+fi
+exec "$PY" -X utf8 -I scripts/verifier_secrets.py --message "$1"
