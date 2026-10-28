@@ -132,16 +132,69 @@ def appels_externes(client, j, cache, sirets, sirens, reprise, rafraichir_jours=
     Un cache commun à tous les départements d'une exécution : un SIRET, un SIREN, un seul appel.
     `rafraichir_jours` : rappelle les réponses plus anciennes. `budget_s` : au-delà, les appels
     s'arrêtent ; une réponse manquante arrête alors l'exécution (reprise au lancement suivant,
-    le cache étant gardé), une réponse seulement ancienne est gardée telle quelle."""
+    le cache étant gardé), une réponse seulement ancienne est gardée telle quelle.
+
+    Le BODACC compare le commercant de chaque annonce détaillée aux noms de l'annuaire (identite) : il
+    attend que l'annuaire ait répondu pour tous les SIRET du SIREN. Une réponse en cache d'un format
+    antérieur qui a une famille d'alerte est complétée (bodacc.details, une requête)."""
     p_din, p_bod = os.path.join(cache, "dinum.json"), os.path.join(cache, "bodacc.json")
     din = (lire_json(p_din, {}) or {}) if reprise else {}
     bod = (lire_json(p_bod, {}) or {}) if reprise else {}
     erreurs = collections.Counter()
     fin = time.monotonic() + budget_s if budget_s else None
     restants = {}
+    par_siren = collections.defaultdict(list)
+    for s in sirets:
+        par_siren[s[:9]].append(s)
+    annuaire = threading.Condition()
+    annuaire_fini = []
+
+    def identite(siren):
+        """{"ei", "noms"} d'un SIREN pour bodacc.details : noms d'une société lus dans les fiches de l'annuaire ;
+        ceux d'un entrepreneur individuel lus à part et oubliés (entreprises.noms_transitoires)."""
+        with annuaire:
+            annuaire.wait_for(lambda: annuaire_fini or all(x in din for x in par_siren[siren]))
+            fiches = [din[x] for x in par_siren[siren] if (din.get(x) or {}).get("trouve")]
+        if not fiches:
+            return {"ei": None, "noms": ()}
+        if any(f.get("ei") for f in fiches):
+            try:
+                return {"ei": True, "noms": entreprises.noms_transitoires(client, siren)}
+            except Exception as e:   # concordance inconnue : l'annonce reste non contrôlée
+                j.ecrire("ERREUR", "noms transitoires", type(e).__name__, str(e)[:160])
+                return {"ei": True, "noms": ()}
+        noms = set()
+        for f in fiches:
+            noms.update(x for x in (f.get("nom"), f.get("nom_complet"), f.get("sigle")) if x)
+            for e in (f.get("etab"), f.get("siege")):
+                noms.update((e or {}).get("enseignes") or ())
+        return {"ei": False, "noms": sorted(noms)}
+
+    def fiche_annuaire(s):
+        try:
+            return entreprises.fiche_siret(client, s)
+        finally:
+            with annuaire:
+                annuaire.notify_all()
+
+    def annonces(s):
+        e = bod.get(s)
+        if e is not None and not _perime(e, rafraichir_jours) and bodacc.a_completer(e):
+            return bodacc.details(client, e, identite)
+        return bodacc.annonces_siren(client, s, identite)
 
     def boucle(nom, cles, fn, store, chemin):
-        manquants = [k for k in cles if k not in store or _perime(store[k], rafraichir_jours)]
+        try:
+            _boucle(nom, cles, fn, store, chemin)
+        finally:
+            if nom == "dinum":
+                with annuaire:
+                    annuaire_fini.append(True)
+                    annuaire.notify_all()
+
+    def _boucle(nom, cles, fn, store, chemin):
+        manquants = [k for k in cles if k not in store or _perime(store[k], rafraichir_jours)
+                     or (nom == "bodacc" and bodacc.a_completer(store[k]))]
         j.ecrire("APPELS", nom, "demandes=%d" % len(cles), "en cache=%d" % (len(cles) - len(manquants)),
                  "a rappeler=%d" % len(manquants))
         for i, k in enumerate(manquants, 1):
@@ -160,8 +213,8 @@ def appels_externes(client, j, cache, sirets, sirens, reprise, rafraichir_jours=
                 dire("   %s : %d / %d" % (nom, i, len(manquants)))
         ecrire_json(chemin, store)
 
-    fils = [threading.Thread(target=boucle, args=("dinum", sirets, lambda s: entreprises.fiche_siret(client, s), din, p_din)),
-            threading.Thread(target=boucle, args=("bodacc", sirens, lambda s: bodacc.annonces_siren(client, s), bod, p_bod))]
+    fils = [threading.Thread(target=boucle, args=("dinum", sirets, fiche_annuaire, din, p_din)),
+            threading.Thread(target=boucle, args=("bodacc", sirens, annonces, bod, p_bod))]
     for f in fils:
         f.start()
     for f in fils:
@@ -256,6 +309,32 @@ def numeros_masques(din, sirets=None):
     return sirens - publies, {f["siret"] for f in fiches if not f.get("trouve")}
 
 
+def bodacc_publie(b, creation):
+    """Champ bodacc publié d'un syndic et annonces d'alerte écartées (bodacc.publiables) : (champ, écartées).
+    id, registre et commercant restent dans le cache (contrôle du rattachement), jamais publiés. Achats de
+    fonds lus dans les comptes par famille (la liste détaillée peut être tronquée)."""
+    if b is None:
+        return None, collections.Counter()
+    gardees, familles, ecart = bodacc.publiables(b, creation)
+    achats = [v for f, v in b["familles"].items() if re.search(r"vente|cession", f, re.I)]
+    return {
+        "total": sum(v["n"] for v in familles.values()),
+        "familles": {k: v["n"] for k, v in familles.items()},
+        "premiere": min((v["premiere"] for v in familles.values() if v["premiere"]), default=None),
+        "derniere": max((v["derniere"] for v in familles.values() if v["derniere"]), default=None),
+        "procedures": [{k: x.get(k, "") for k in ("date", "type", "nature")} for x in gardees["procedures"]],
+        "radiations": [x["date"] for x in gardees["radiations"]],
+        "achats": sum(v["n"] for v in achats),
+        "dernier_achat": max((v["derniere"] for v in achats if v["derniere"]), default=None),
+        "heure": b.get("heure")}, ecart
+
+
+def ecartees_publiees(c):
+    """Comptes publiés des annonces d'alerte écartées (motifs de bodacc.publiables)."""
+    return {"ecartees_nom_discordant": c.get("nom_discordant", 0), "ecartees_avant_creation": c.get("avant_creation", 0),
+            "non_controlees": c.get("non_controlee", 0)}
+
+
 def composer(dep, sortie, date_txt, exemple, ex, infos, din, bod, geo, zones, national, j, groupes=None,
              nom_departement=None, masse=None, signalees=None):
     """Données publiées d'un département. `groupes` : groupes de sociétés calculés une fois pour toute
@@ -310,12 +389,17 @@ def composer(dep, sortie, date_txt, exemple, ex, infos, din, bod, geo, zones, na
     syndics = []
     local = {}   # indicateurs du département par SIRET : fichier local, non publié
     non_trouves = 0
+    ecartees, sirens_ecarts = collections.Counter(), set()
     for s in sirets:
         d = din.get(s) or {}
         b = bod.get(s[:9])
         trouve = bool(d.get("trouve"))
         non_trouves += 0 if trouve else 1
         ei = bool(d.get("ei"))
+        b_pub, ecart = bodacc_publie(b, d.get("date_creation"))
+        if b is not None and not publier.masque({"ei": ei, "trouve": trouve}) and s[:9] not in sirens_ecarts:
+            sirens_ecarts.add(s[:9])   # un SIREN compté une fois ; masqué, son BODACC n'est pas publié
+            ecartees.update(ecart)
         nom = "" if ei or not trouve else (d.get("nom") or d.get("nom_complet") or "")   # masquer() pose les libellés
         fin = d.get("finances") or {}
         an = max(fin) if fin else None
@@ -339,16 +423,7 @@ def composer(dep, sortie, date_txt, exemple, ex, infos, din, bod, geo, zones, na
             "groupe": {"id": g[0], "libelle": g[1], "preuves": g[2]} if g else None,
             "dirigee_par": sorted({x.get("denomination") or x["siren"] for x in (d.get("dirigeants_pm") or [])}) or None,
             "dinum": {"mode": d.get("mode"), "heure": d.get("heure")},
-            "bodacc": None if b is None else {
-                "total": sum(v["n"] for v in b["familles"].values()),
-                "familles": {k: v["n"] for k, v in b["familles"].items()},
-                "premiere": min((v["premiere"] for v in b["familles"].values() if v["premiere"]), default=None),
-                "derniere": max((v["derniere"] for v in b["familles"].values() if v["derniere"]), default=None),
-                # id, registre et commercant restent dans le cache (contrôle du rattachement) : jamais publiés
-                "procedures": [{k: x.get(k, "") for k in ("date", "type", "nature")} for x in b["procedures"]],
-                "radiations": [x["date"] for x in b["radiations"]],
-                "achats": len(b["achats"]), "dernier_achat": max((x["date"] for x in b["achats"]), default=None),
-                "heure": b.get("heure")},
+            "bodacc": b_pub,
             "national": {"copros_siret": (nat_siret.get(s) or [0, 0])[0], "lots_siret": (nat_siret.get(s) or [0, 0])[1],
                          "copros_siren": nat_siren[s[:9]][0], "lots_siren": nat_siren[s[:9]][1],
                          "sirets_du_siren": nat_siren[s[:9]][2]} if nat_siret else None,
@@ -456,8 +531,9 @@ def composer(dep, sortie, date_txt, exemple, ex, infos, din, bod, geo, zones, na
             "extraction_t3": {k: statsT.get(k) for k in ("heure", "lignes", "meta_total", "controle")},
             "dinum": {"premier": min((d.get("heure") or "" for d in din_dep), default=""),
                       "dernier": max((d.get("heure") or "" for d in din_dep), default="")},
-            "bodacc": {"premier": min((b.get("heure") or "" for b in bod_dep), default=""),
-                       "dernier": max((b.get("heure") or "" for b in bod_dep), default="")},
+            "bodacc": dict({"premier": min((b.get("heure") or "" for b in bod_dep), default=""),
+                            "dernier": max((b.get("heure") or "" for b in bod_dep), default="")},
+                           **ecartees_publiees(ecartees)),
             "contours": {"heure": geo.get("heure")},
             "national": {k: ((national or {}).get("stats") or {}).get(k) for k in ("heure", "lignes", "meta_total", "controle")},
         },
@@ -744,6 +820,9 @@ def executer_national(args, sortie, j):
     manque = sum(1 for s in sirens if s not in bod)
     noter("reponses du BODACC completes", not manque, "%d SIREN sans reponse sur %d" % (manque, len(sirens)),
           bloquant=False)
+    manque = sum(1 for s in sirens if s in bod and bodacc.a_completer(bod[s]))
+    noter("annonces d'alerte du BODACC controlees", not manque, "%d SIREN d'un format anterieur, annonces d'alerte "
+          "non publiees (relancer pour completer)" % manque, bloquant=False)
     if args.reseau_seul:
         dire("réseau seul : contours, un département à la fois (cache commun)")
         for k, dep in enumerate(deps, 1):
@@ -806,9 +885,13 @@ def executer_national(args, sortie, j):
     # Comptes de la France : syndics publiés (SIRET distincts, tous départements) et syndics masqués (SIREN
     # distincts) ; lignes des collectivités d'outre-mer, sans département, non publiées dans cette version.
     fiches = [din.get(s) or {"siren": s[:9]} for s in sirets]
+    ecart = collections.Counter()
+    for f in {f["siren"]: f for f in fiches if f.get("trouve") and not f.get("ei")}.values():
+        ecart.update(bodacc_publie(bod.get(f["siren"]), f.get("date_creation"))[1])
     france = {"syndics": {"sirets": len(sirets),
                           "ei": len({f["siren"] for f in fiches if f.get("ei")}),
                           "nt": len({f["siren"] for f in fiches if not f.get("trouve")})},
+              "bodacc": ecartees_publiees(ecart),
               "collectivites_outre_mer": national.collectivites(q.get("sans_departement_valeurs"))}
     j.ecrire("FRANCE", france)
     manifest, err, alr, det = publier.finaliser(

@@ -157,6 +157,21 @@ def fiche_siret(client, siret):
     return base
 
 
+def noms_transitoires(client, siren):
+    """Noms d'une unité (dénomination, nom complet, sigle, enseignes), lus pour une comparaison et oubliés :
+    ni gardés en cache ni publiés. Sert au BODACC pour un entrepreneur individuel, dont le nom est celui
+    d'une personne (bodacc.details ne garde que le booléen de concordance)."""
+    url = URL + "?" + urllib.parse.urlencode({"q": siren, "page": 1, "per_page": 1})
+    noms = set()
+    for r in client.get_json(url).get("results", []):
+        if r.get("siren") != siren:
+            continue
+        noms.update(x for x in (r.get("nom_raison_sociale"), r.get("nom_complet"), r.get("sigle")) if x)
+        for e in [r.get("siege") or {}] + list(r.get("matching_etablissements") or []):
+            noms.update(e.get("liste_enseignes") or ())
+    return sorted(noms)
+
+
 def forme(nj):
     return FORMES.get(str(nj or ""), ("code %s" % nj) if nj else "")
 
