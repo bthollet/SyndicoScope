@@ -570,8 +570,13 @@ def masse_nationale(j, chemin):
     return m["dates"], m["signalees"]
 
 
-def complements(dep, donnees, j):
-    """Jeux complémentaires du département (rendu.lire_complements) ; meta.complements en donne la liste."""
+def complements(dep, donnees, j, lire=True):
+    """Jeux complémentaires du département (rendu.lire_complements) ; meta.complements en donne la liste.
+    `lire` faux (--sans-complements) : donnees_complementaires/ n'est pas ouvert, la liste reste vide."""
+    if not lire:
+        donnees["meta"]["complements"] = []
+        j.ecrire("COMPLEMENTS", dep, "non lus (--sans-complements)")
+        return {}
     try:
         comp = rendu.lire_complements(RACINE, dep)
     except ValueError as e:
@@ -601,7 +606,7 @@ def executer_departement(args, sortie, j):
             j.ecrire("ALERTE", "rendu seul : pas de cache local de l'annuaire ; masquage controle sur la structure, "
                      "sans balayage des numeros")
         avant = donnees["meta"].get("complements")
-        comp = complements(args.departement, donnees, j)
+        comp = complements(args.departement, donnees, j, not args.sans_complements)
         ecrire = donnees["meta"]["complements"] != avant   # le fichier dit ce que la page embarque
     else:
         verifier_memoire(j, "demarrage")
@@ -646,7 +651,7 @@ def executer_departement(args, sortie, j):
                            agregat, j, nom_departement=national.NOMS_DEPARTEMENTS.get(args.departement),
                            masse=masse, signalees=signalees)
         masques = numeros_masques(din, sirets)
-        comp = complements(args.departement, donnees, j)
+        comp = complements(args.departement, donnees, j, not args.sans_complements)
         ecrire = True
         ecrire_json(os.path.join(sortie, "contours.json"), geojson, compact=True)
         j.ecrire("APPELS", "total", client.appels)
@@ -857,7 +862,7 @@ def executer_national(args, sortie, j):
                            c["zones"], agregat, j, groupes=groupes, nom_departement=nom, masse=masse,
                            signalees=signalees)
         ajouter_judilibre(donnees, jl)
-        comp = complements(dep, donnees, j)
+        comp = complements(dep, donnees, j, not args.sans_complements)
         ecrire_json(os.path.join(d_dir, "donnees.json"), donnees, compact=True)
         ecrire_json(os.path.join(d_dir, "contours.json"), c["geojson"], compact=True)
         if args.pages:
@@ -929,6 +934,9 @@ def principal():
     ap.add_argument("--exemple", help="code INSEE de la zone préchargée (par défaut : l'arrondissement ou la commune la plus fournie)")
     ap.add_argument("--date", help="date de référence AAAA-MM-JJ (par défaut : aujourd'hui)")
     ap.add_argument("--judilibre", help="fichier de comptes produit par judilibre_local.py (facultatif)")
+    ap.add_argument("--sans-complements", action="store_true",
+                    help="ne pas ouvrir donnees_complementaires/ (jeux en cours d'écriture ailleurs) : "
+                         "meta.complements reste vide")
     ap.add_argument("--repartition", help="(--departement) repartition.json d'un passage national, d'où viennent "
                                           "les dates de masse de la France (par défaut : build/national s'il existe)")
     nat = ap.add_argument_group("passage national (--departements, --tous)")

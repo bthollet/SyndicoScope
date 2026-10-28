@@ -201,5 +201,23 @@ class Repartition(unittest.TestCase):
             national.repartir(ClientFactice(), self.j, self.infos, self.racine)
 
 
+class SansComplements(unittest.TestCase):
+    """--sans-complements : donnees_complementaires/ n'est pas ouvert (jeux en cours d'écriture ailleurs)."""
+    def test_dossier_non_lu(self):
+        import build
+        appels = []
+        avant = build.rendu.lire_complements
+        build.rendu.lire_complements = lambda *a: appels.append(a) or {"jurisprudence": {}}
+        try:
+            donnees = {"meta": {"complements": ["jurisprudence"]}}
+            j = type("J", (), {"ecrire": lambda self, *a: None})()
+            self.assertEqual(build.complements("13", donnees, j, lire=False), {})
+            self.assertEqual((donnees["meta"]["complements"], appels), ([], []))
+            self.assertEqual(build.complements("13", donnees, j), {"jurisprudence": {}})
+            self.assertEqual(len(appels), 1)
+        finally:
+            build.rendu.lire_complements = avant
+
+
 if __name__ == "__main__":
     unittest.main()
