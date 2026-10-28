@@ -15,6 +15,9 @@ Usages
                         commentaire), jamais affichées. S'ajoutent aux trois premiers modes.
                         Le crochet lit ce chemin dans `git config syndicoscope.motifsLocaux`.
 
+Un .json sous donnees_complementaires/ est une trouvaille en soi (jeux complémentaires, hors du
+dépôt tant que le verrou de publication n'est pas levé).
+
 Une trouvaille s'affiche « chemin:ligne: règle », jamais avec le texte trouvé.
 Code de sortie : 0 rien trouvé, 1 trouvé, 2 erreur.
 
@@ -46,6 +49,8 @@ NOMS_INTERDITS = re.compile(
     r"(?i)^(?:\.env(?:\..+)?|.+\.(?:pem|key|p12|pfx|jks|keystore)|id_(?:rsa|dsa|ecdsa|ed25519)(?:\.pub)?|"
     r"piste.*\.txt|.*secrets?\.(?:txt|json|ya?ml|ini|cfg|toml|env))$")
 EXEMPTION = "verif-secrets: ignorer"
+# Jeux complémentaires (jurisprudence, pénal…) : aucun .json de ce dossier n'entre dans le dépôt (28/10/2026).
+JEUX_COMPLEMENTAIRES = re.compile(r"(?i)^donnees_complementaires/.*\.json$")
 
 
 def entropie(s):
@@ -100,6 +105,8 @@ def examiner(nom, contenu, motifs):
     base = nom.replace("\\", "/").rsplit("/", 1)[-1]
     if NOMS_INTERDITS.match(base):
         trouve.append((nom, 0, "nom de fichier réservé aux secrets"))
+    if JEUX_COMPLEMENTAIRES.match(nom.replace("\\", "/")):
+        trouve.append((nom, 0, "jeu complémentaire : hors du dépôt tant que le verrou de publication n'est pas levé"))
     if b"\x00" in contenu[:8000]:
         texte = ""
     else:

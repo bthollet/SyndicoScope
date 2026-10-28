@@ -1,6 +1,9 @@
 # Données téléchargées ou générées : jamais dans le dépôt
 build/
 data/
+# Jeux complémentaires d'un département (jurisprudence, pénal…) : hors du dépôt public tant que le
+# verrou de publication n'est pas levé ; leurs scripts et notes pourront y entrer après relecture.
+donnees_complementaires/**/*.json
 
 # Python
 __pycache__/

@@ -1,5 +1,6 @@
 #!/bin/sh
-# Crochet pre-commit de SyndicoScope : refuse un commit qui indexe un secret.
+# Crochet pre-commit de SyndicoScope : refuse un commit qui indexe un secret, ou un .json de
+# donnees_complementaires/ (jeux complémentaires, hors du dépôt tant que le verrou n'est pas levé).
 # Activation, une fois par clone :  git config core.hooksPath scripts/hooks
 # Motifs propres au poste (facultatif, jamais versionnés) :
 #   git config syndicoscope.motifsLocaux <chemin d'un fichier hors du dépôt ou ignoré>
