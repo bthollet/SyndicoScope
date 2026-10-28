@@ -110,6 +110,8 @@ class Controles(unittest.TestCase):
         d = donnees_minimales()
         d["syndics"][0]["adresse"] = "1 rue de l'Essai"
         self.assertTrue(publier.controler_departement(d, set())[0])
+        d = donnees_minimales(bodacc={"procedures": [{"date": "2011-09-08", "commercant": "AUTRE SOCIETE"}]})
+        self.assertTrue(publier.controler_departement(d, set())[0])
 
     def test_entrepreneur_individuel(self):
         mal = donnees_minimales(ei=True, nom="Jean Dupont")

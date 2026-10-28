@@ -36,7 +36,8 @@ SEUILS_ALERTE = {"g_octets": 3_000_000, "g_gzip": 1_000_000, "communes_gzip": 60
 CLES_INTERDITES = {"adresse", "adresse_reference", "nom_usage", "nom_usage_copropriete", "representant",
                    "identification_representant_legal", "raison_sociale_representant_legal", "dirigeants",
                    "prenom", "prenoms", "nom_naissance", "date_naissance", "listepersonnes",
-                   "date_fin_dernier_mandat", "date_fin", "mandat_en_cours", "reference_cadastrale", "parcelle"}
+                   "date_fin_dernier_mandat", "date_fin", "mandat_en_cours", "reference_cadastrale", "parcelle",
+                   "commercant"}   # BODACC : nom de l'annonce, cache local seulement (bodacc.py)
 # Syndics masqués (build.masquer) : entrepreneurs individuels (ei) et syndics professionnels que l'annuaire
 # ne connaît ni par leur SIRET ni par leur SIREN (nt). Publiés sous une clé de pseudonyme à la place du SIREN
 # (ei-N, nt-N) et un libellé fixe à la place du nom, sans rien de ce qui suit.
