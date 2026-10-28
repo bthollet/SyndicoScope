@@ -1,0 +1,285 @@
+<title>SyndicoScope</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Les syndics de copropriété de votre quartier, d'après les registres publics : présence, devenir des copropriétés, mises à jour du registre, décisions de justice publiées.">
+<style>
+/*CSS*/
+</style>
+<!-- CORPS -->
+<div class="page">
+  <a class="evitement" href="#syndics-titre">Aller au tableau des syndics</a>
+
+  <header class="entete">
+    <div class="entete-ligne">
+      <h1 class="marque">SyndicoScope</h1>
+      <div class="entete-outils">
+        <a href="#comment-lire" id="lien-comment-lire">Comment lire ces chiffres</a>
+        <div class="theme" id="theme-bloc" hidden>
+          <label for="theme">Thème</label>
+          <select id="theme" class="champ">
+            <option value="">Système</option>
+            <option value="light">Clair</option>
+            <option value="dark">Sombre</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <p class="sous-titre">Les syndics de votre quartier, d'après les registres publics</p>
+    <div class="accueil">
+      <p>Partez de votre copropriété, ou d'une commune. SyndicoScope montre les syndics qui gèrent des copropriétés comparables à la vôtre, et place chacun parmi les autres syndics de la zone.</p>
+      <button type="button" class="btn-lien en-savoir-plus" id="btn-en-savoir-plus" aria-expanded="false" aria-controls="accueil-suite">En savoir plus</button>
+      <div class="accueil-suite" id="accueil-suite" data-ouvert="false">
+        <p>Les chiffres viennent de registres publics, datés et cités. <a href="#methode" id="lien-methode">La méthode est publiée</a>, et rien n'est noté ni classé.</p>
+        <p>Pour comparer des prix sur devis, des comparateurs existent déjà, comme SyndiCompare.</p>
+      </div>
+    </div>
+  </header>
+
+  <main id="principal">
+    <section class="depart" id="depart" aria-labelledby="depart-titre">
+      <h2 id="depart-titre">Commencez par votre copropriété</h2>
+      <div class="segments" role="radiogroup" aria-label="Comment la retrouver">
+        <label><input type="radio" name="depart-mode" value="numero" checked><span>J'ai son numéro</span></label>
+        <label><input type="radio" name="depart-mode" value="adresse"><span>Je connais son adresse</span></label>
+      </div>
+      <div class="bloc-filtre" id="depart-numero">
+        <label for="champ-immat">Numéro d'immatriculation de votre copropriété</label>
+        <form class="ligne-champ" id="form-immat" novalidate>
+          <input id="champ-immat" class="champ immat" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-describedby="aide-immat">
+          <button type="submit" class="btn btn-plein">Chercher</button>
+        </form>
+        <span class="aide" id="aide-immat">2 lettres puis 7 chiffres. Votre syndic ou votre conseil syndical peut vous le donner.</span>
+        <div class="erreur-champ" id="erreur-immat" hidden></div>
+      </div>
+      <div class="bloc-filtre" id="depart-adresse" hidden>
+        <label for="champ-adresse">Adresse de votre copropriété</label>
+        <div class="combo">
+          <input id="champ-adresse" class="champ" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="liste-adresses" aria-describedby="aide-adresse" autocomplete="off" spellcheck="false">
+          <ul id="liste-adresses" class="combo-liste" role="listbox" aria-label="Adresses trouvées" hidden></ul>
+        </div>
+        <span class="aide" id="aide-adresse">Ce que vous tapez est envoyé à la Base adresse nationale (api-adresse.data.gouv.fr), un service public, pour retrouver l'adresse. La page ne la garde pas et ne l'écrit dans aucun lien.</span>
+        <div class="erreur-champ" id="erreur-adresse" hidden></div>
+        <div class="copros-proches" id="copros-proches" hidden></div>
+      </div>
+      <div class="resume-copro" id="resume-copro" hidden></div>
+      <p class="depart-autre"><button type="button" class="btn-lien" id="btn-voir-commune">Je veux seulement voir une commune</button></p>
+    </section>
+
+    <section class="bandeau" id="bandeau" aria-label="Zone">
+      <div class="bandeau-haut">
+        <h2 class="plaque" id="zone-titre"><span id="plaque-nom">Chargement…</span><small id="plaque-sous"></small></h2>
+      </div>
+      <div class="chiffres-zone" id="chiffres-zone"></div>
+      <p class="dates-zone" id="dates-zone"></p>
+      <p class="info-bandeau" id="info-bandeau" hidden></p>
+    </section>
+
+    <section class="filtres" id="filtres" aria-label="Zone et filtres" data-replie="true">
+      <button type="button" class="btn resume-filtres-btn" id="resume-filtres" aria-expanded="false" aria-controls="filtres-corps">
+        <span id="resume-filtres-texte">Zone et filtres</span>
+        <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M5 8l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="filtres-corps" id="filtres-corps">
+        <div class="filtres-grille">
+          <fieldset class="bloc-filtre" id="bloc-zone">
+            <legend>Zone</legend>
+            <div class="segments">
+              <label><input type="radio" name="mode-zone" value="liste" checked><span>Commune ou arrondissement</span></label>
+              <label><input type="radio" name="mode-zone" value="cercle"><span>Cercle autour d'un point</span></label>
+            </div>
+            <div class="bloc-filtre" id="zone-liste">
+              <label for="champ-commune">Commune ou arrondissement</label>
+              <div class="combo">
+                <input id="champ-commune" class="champ" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="liste-communes" aria-describedby="aide-commune" autocomplete="off" spellcheck="false">
+                <ul id="liste-communes" class="combo-liste" role="listbox" aria-label="Communes et arrondissements" hidden></ul>
+              </div>
+              <span class="aide" id="aide-commune">Tapez les premières lettres, puis choisissez dans la liste.</span>
+              <p class="petit"><button type="button" class="btn-lien" id="btn-departement">Voir tout le département</button></p>
+            </div>
+            <div class="bloc-filtre" id="zone-cercle" hidden>
+              <p class="petit" id="centre-texte"></p>
+              <div class="viseur-barre" id="viseur-depart">
+                <button type="button" class="btn" id="btn-choisir-centre">Choisir le centre sur la carte</button>
+              </div>
+              <div class="bloc-filtre" id="viseur-actions" hidden>
+                <p class="petit">Déplacez la carte pour placer le viseur, puis validez.</p>
+                <div class="viseur-barre">
+                  <button type="button" class="btn btn-plein" id="btn-valider-centre">Valider ce centre</button>
+                  <button type="button" class="btn" id="btn-annuler-centre">Annuler</button>
+                </div>
+              </div>
+              <fieldset>
+                <legend>Rayon</legend>
+                <div class="segments" id="segments-rayon">
+                  <label><input type="radio" name="rayon" value="300"><span>300 m</span></label>
+                  <label><input type="radio" name="rayon" value="500"><span>500 m</span></label>
+                  <label><input type="radio" name="rayon" value="1000" checked><span>1 km</span></label>
+                  <label><input type="radio" name="rayon" value="2000"><span>2 km</span></label>
+                  <label><input type="radio" name="rayon" value="5000"><span>5 km</span></label>
+                </div>
+              </fieldset>
+            </div>
+          </fieldset>
+
+          <fieldset class="bloc-filtre" id="bloc-comparables">
+            <legend>Comparer avec des copropriétés de même…</legend>
+            <div class="comparables">
+              <div class="bloc-filtre">
+                <label for="filtre-taille">Taille</label>
+                <select id="filtre-taille" class="champ"></select>
+                <span class="regle-sur" id="regle-taille" hidden>Réglé sur votre copropriété</span>
+              </div>
+              <div class="bloc-filtre">
+                <label for="filtre-construction">Construction</label>
+                <select id="filtre-construction" class="champ"></select>
+                <span class="regle-sur" id="regle-construction" hidden>Réglé sur votre copropriété</span>
+              </div>
+            </div>
+            <span class="aide">Comparer des immeubles de taille et d'âge proches rend les chiffres plus justes. Un petit immeuble ancien et une grande résidence récente ne se gèrent pas de la même façon.</span>
+          </fieldset>
+        </div>
+        <div class="filtres-pied">
+          <button type="button" class="btn" id="btn-reinitialiser">Tout réinitialiser</button>
+          <button type="button" class="btn btn-plein resume-filtres-btn" id="btn-voir-resultats">Voir les résultats</button>
+        </div>
+      </div>
+    </section>
+
+    <div class="disposition" id="disposition" data-onglet="syndics" data-carte="non">
+      <div class="col-principale">
+        <div class="onglets" role="group" aria-label="Affichage">
+          <button type="button" class="btn" id="onglet-syndics" aria-pressed="true">Syndics</button>
+          <button type="button" class="btn" id="onglet-carte" aria-pressed="false">Carte</button>
+        </div>
+
+        <section class="comment-lire" id="comment-lire" aria-labelledby="comment-lire-titre" tabindex="-1">
+          <div class="comment-lire-tete">
+            <h2 id="comment-lire-titre">Comment lire ces chiffres</h2>
+            <button type="button" class="btn" id="btn-masquer-lire">Masquer</button>
+          </div>
+          <ol>
+            <li>Ces chiffres reprennent ce que les syndics déclarent au registre public des copropriétés, à deux dates.</li>
+            <li>Chaque taux se lit à côté de ses repères : la zone, la commune, le département.</li>
+            <li>Sur moins de 10 copropriétés, nous écrivons « 2 sur 7 » plutôt qu'un pourcentage.</li>
+            <li>Un écart peut venir d'une déclaration tardive ou d'une erreur de saisie au registre.</li>
+            <li>Rien n'est noté ni classé : ces chiffres servent à préparer vos questions.</li>
+          </ol>
+        </section>
+
+        <section class="panneau" id="panneau-principal" aria-busy="true">
+          <div id="vue-tableau">
+            <div class="panneau-tete">
+              <h2 id="syndics-titre" tabindex="-1">Syndics de la zone</h2>
+              <button type="button" class="btn bouton-carte" id="btn-carte" aria-expanded="false" aria-controls="col-carte">Afficher la carte</button>
+            </div>
+            <fieldset id="choix-colonnes" class="choix-colonnes">
+              <legend>Colonnes affichées</legend>
+              <div class="segments" id="choix-colonnes-segments"></div>
+              <p class="petit muted" id="choix-colonnes-justice" hidden></p>
+            </fieldset>
+            <div class="outils-tableau">
+              <div class="bloc-filtre recherche-syndic">
+                <label for="champ-recherche">Trouver un syndic par son nom</label>
+                <input id="champ-recherche" class="champ" type="search" autocomplete="off" spellcheck="false" aria-describedby="recherche-etat">
+                <p class="petit recherche-etat" id="recherche-etat" role="status"></p>
+              </div>
+              <div class="outils-droite">
+                <label class="case"><input type="checkbox" id="chk-groupes"> <span>Regrouper les sociétés d'un même groupe</span></label>
+                <a class="btn" id="lien-export" href="#" download hidden>Télécharger le tableau (CSV)</a>
+                <button type="button" class="btn" id="btn-copier-export" hidden>Copier le tableau</button>
+              </div>
+            </div>
+            <textarea class="texte-copie" id="repli-export" readonly hidden aria-label="Tableau à copier"></textarea>
+            <p class="note-tri">Trier n'est pas classer : un pourcentage calculé sur peu de copropriétés varie beaucoup.</p>
+            <div class="pilotes-tel">
+              <div class="bloc-filtre">
+                <label for="tri-tel">Trier par</label>
+                <select id="tri-tel" class="champ"></select>
+              </div>
+              <div class="bloc-filtre">
+                <label for="chiffre-tel">Chiffre affiché</label>
+                <select id="chiffre-tel" class="champ"></select>
+              </div>
+            </div>
+            <div id="tableau-contenu"><p class="chargement" id="chargement">Chargement des données du département…</p></div>
+          </div>
+          <div id="vue-fiche" hidden></div>
+          <div id="vue-comparateur" hidden></div>
+          <div id="vue-dossier" hidden></div>
+        </section>
+      </div>
+
+      <section class="col-carte" id="col-carte" aria-labelledby="carte-titre">
+        <div class="carte-entete">
+          <h2 id="carte-titre">Carte</h2>
+        </div>
+        <p class="carte-aide" id="carte-aide"></p>
+        <div class="carte" id="carte"></div>
+        <div class="legende" id="legende" aria-labelledby="legende-titre"></div>
+        <div id="jumeau" hidden></div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="pied" id="pied">
+    <section id="methode" class="methode" aria-labelledby="methode-titre" tabindex="-1">
+      <h2 id="methode-titre">Méthode</h2>
+      <div id="methode-corps"></div>
+    </section>
+    <section aria-labelledby="pied-sources">
+      <h2 id="pied-sources">Sources et licences</h2>
+      <ul id="liste-sources"></ul>
+    </section>
+    <section aria-labelledby="pied-limites">
+      <h2 id="pied-limites">Ce que ces chiffres ne disent pas</h2>
+      <ul id="liste-limites"></ul>
+    </section>
+    <section aria-labelledby="pied-avertissement">
+      <h2 id="pied-avertissement">Avertissement</h2>
+      <p>SyndicoScope est un outil indépendant. Il n'a de lien ni avec l'Agence nationale de l'habitat, ni avec l'État, ni avec un syndic. Il ne note ni ne classe aucun syndic. Les chiffres reprennent des déclarations publiques, à leur date ; ils peuvent contenir des erreurs ou des déclarations tardives. Avant toute décision, vérifiez auprès du syndic concerné et dans les documents de votre copropriété.</p>
+    </section>
+    <section aria-labelledby="pied-donnees">
+      <h2 id="pied-donnees">Données personnelles</h2>
+      <p>Aucun dirigeant n'est nommé, ni aucun syndic bénévole ou copropriétaire. Aucune adresse n'est écrite. L'adresse que vous tapez part seulement à la Base adresse nationale, pour la retrouver : la page ne la garde pas et ne l'écrit dans aucun lien. La page ne dépose aucun cookie ; elle garde seulement votre liste courte et vos préférences d'affichage dans votre navigateur.</p>
+    </section>
+    <section aria-labelledby="pied-retours">
+      <h2 id="pied-retours">Signaler un problème, proposer une idée</h2>
+      <p>Un chiffre vous paraît faux, la page ne marche pas comme prévu, une fonction vous manque : dites-le-nous. La plupart des chiffres viennent des déclarations au registre des copropriétés : une correction faite à la source, par le syndic, est reprise au calcul suivant.</p>
+      <p><button type="button" class="btn" data-act="retours">Signaler un problème ou proposer une idée</button></p>
+      <p id="pied-version" class="muted"></p>
+    </section>
+    <section id="mentions-legales" aria-labelledby="pied-mentions">
+      <h2 id="pied-mentions">Mentions légales</h2>
+      <p>Éditeur : une personne physique agissant à titre non professionnel, qui garde l'anonymat comme le permet l'article 1-1, II, de la loi n° 2004-575 du 21 juin 2004 pour la confiance dans l'économie numérique.</p>
+      <p>Hébergeur : GitHub, Inc., 88 Colin P. Kelly Jr. St., San Francisco, CA 94107, États-Unis.</p>
+      <p>Droit de réponse : toute personne nommée ou désignée sur ce site peut exercer un droit de réponse (même article, III). La demande est adressée à l'hébergeur, qui la transmet à l'éditeur. Pour signaler une erreur ou demander une correction, utilisez aussi le bouton « Signaler » de cette page.</p>
+      <p>Services tiers appelés par votre navigateur : la bibliothèque de carte Leaflet, chargée depuis cdnjs.cloudflare.com ; les fonds de carte de l'IGN, chargés depuis data.geopf.fr ; la Base adresse nationale (api-adresse.data.gouv.fr), qui reçoit ce que vous tapez dans la recherche d'adresse. Comme tout site, ces services reçoivent l'adresse IP de votre navigateur.</p>
+    </section>
+  </footer>
+</div>
+
+<div class="barre-liste" id="barre-liste" hidden>
+  <div class="barre-liste-corps" id="barre-liste-corps"></div>
+</div>
+<dialog class="retours" id="retours" aria-labelledby="retours-titre">
+  <div class="retours-corps">
+    <div class="retours-tete">
+      <h2 id="retours-titre">Signaler un problème ou proposer une idée</h2>
+      <button type="button" class="btn" id="btn-fermer-retours">Fermer</button>
+    </div>
+    <p>Votre message devient un <strong>ticket public</strong> sur GitHub, le site qui héberge le code de SyndicoScope. Il faut un compte GitHub, gratuit, pour l'envoyer.</p>
+    <ul class="retours-choix">
+      <li><a class="btn" id="retour-bogue" href="https://github.com/bthollet/SyndicoScope/issues/new?template=bogue.yml" target="_blank" rel="noopener noreferrer">Signaler un bogue<span class="sr-only"> (GitHub, nouvel onglet)</span></a><span class="petit muted">La page ne marche pas comme prévu.</span></li>
+      <li><a class="btn" id="retour-donnees" href="https://github.com/bthollet/SyndicoScope/issues/new?template=erreur-de-donnees.yml" target="_blank" rel="noopener noreferrer">Signaler une erreur de données<span class="sr-only"> (GitHub, nouvel onglet)</span></a><span class="petit muted">Un chiffre, un nom ou un lieu vous paraît faux.</span></li>
+      <li><a class="btn" id="retour-idee" href="https://github.com/bthollet/SyndicoScope/issues/new?template=idee.yml" target="_blank" rel="noopener noreferrer">Proposer une idée<span class="sr-only"> (GitHub, nouvel onglet)</span></a><span class="petit muted">Une fonction qui vous aiderait à choisir ou à suivre un syndic.</span></li>
+    </ul>
+    <p class="petit">Le ticket s'ouvre dans un nouvel onglet, déjà rempli avec le contexte de la page : version et date des données, zone, filtres, syndic de la fiche ouverte, taille de la fenêtre, navigateur. Le numéro de votre copropriété et votre adresse n'y figurent jamais. Relisez avant d'envoyer, et n'y ajoutez ni nom ni adresse.</p>
+    <p class="petit">Pas de compte GitHub ? Une adresse de contact par courriel est <strong>à venir</strong>.</p>
+  </div>
+</dialog>
+<div class="sr-only" role="status" aria-live="polite" id="annonce"></div>
+<noscript><p class="page">SyndicoScope a besoin de JavaScript pour afficher la carte et les tableaux. Activez-le dans votre navigateur, puis rechargez la page.</p></noscript>
+<!--DONNEES-->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js" integrity="sha512-BwHfrr4c9kmRkLw6iXFdzcdWV/PGkVgiIyIWLLlTSXzWQzxuSg4DiQUCpauz/EWjgk5TYQqX/kvn9pG1NpYfqg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script>
+/*JS*/
+</script>
