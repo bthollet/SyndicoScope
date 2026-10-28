@@ -13,6 +13,12 @@ Usages
                         rien d'autre. Aucune valeur n'est jamais affichée.
   --motifs <fichier>    chaînes interdites propres à un poste (une par ligne, « # » pour un
                         commentaire), jamais affichées. S'ajoutent aux trois premiers modes.
+                        Une ligne qui commence par « ! » est une phrase autorisée : elle est
+                        retirée du texte avant la recherche des motifs, et jamais affichée non
+                        plus. Comparaison en minuscules Unicode, après normalisation NFC ; un
+                        contenu qui n'est pas de l'UTF-8 valide est aussi lu en Windows-1252.
+                        « motif local n° k » : le k-ième motif interdit du fichier (lignes « ! »
+                        et commentaires non comptés).
                         Le crochet lit ce chemin dans `git config syndicoscope.motifsLocaux`.
 
 Un .json sous donnees_complementaires/ est une trouvaille en soi (jeux complémentaires, hors du
@@ -30,7 +36,8 @@ import os
 import re
 import subprocess
 import sys
-from collections import Counter
+import unicodedata
+from collections import Counter, namedtuple
 from pathlib import Path
 
 REGLES_STRICTES = [
@@ -87,16 +94,58 @@ def racine_depot():
     return Path(git("rev-parse", "--show-toplevel", racine=str(ici)).decode("utf-8").strip())
 
 
+# Motifs locaux : chaînes interdites et phrases autorisées, en minuscules Unicode (NFC).
+Motifs = namedtuple("Motifs", "interdits autorisees")
+
+
+def bas_de_casse(texte):
+    return unicodedata.normalize("NFC", texte).lower()
+
+
 def lire_motifs(chemin):
     if not chemin:
-        return []
-    motifs = []
+        return Motifs([], [])
+    interdits, autorisees = [], []
     with open(chemin, encoding="utf-8-sig") as f:
         for ligne in f:
             s = ligne.strip()
-            if s and not s.startswith("#"):
-                motifs.append(s.lower().encode("utf-8"))
-    return motifs
+            if not s or s.startswith("#"):
+                continue
+            if s.startswith("!"):
+                if s[1:].strip():
+                    autorisees.append(bas_de_casse(s[1:].strip()))
+            else:
+                interdits.append(bas_de_casse(s))
+    return Motifs(interdits, autorisees)
+
+
+def textes_du_contenu(contenu):
+    """Lectures du contenu pour les motifs : l'UTF-8, et le Windows-1252 si l'UTF-8 n'est pas valide."""
+    try:
+        return [contenu.decode("utf-8")]
+    except UnicodeDecodeError:
+        return [contenu.decode("utf-8", "replace"), contenu.decode("cp1252", "replace")]
+
+
+def chercher_motifs(nom, contenu, motifs):
+    """Motifs locaux interdits trouvés dans le contenu, phrases autorisées retirées : [(nom, ligne, règle)].
+    `motifs` : un Motifs, ou une simple liste de motifs interdits. Le texte trouvé n'est jamais rendu."""
+    if isinstance(motifs, Motifs):
+        interdits, autorisees = motifs
+    else:
+        interdits, autorisees = [bas_de_casse(m.decode("utf-8") if isinstance(m, bytes) else m) for m in motifs], []
+    if not interdits:
+        return []
+    lignes = {}
+    for texte in textes_du_contenu(contenu):
+        bas = bas_de_casse(texte)
+        for a in autorisees:   # remplacée par des espaces : rien ne se recolle, les lignes ne bougent pas
+            bas = bas.replace(a, " " * len(a))
+        for k, m in enumerate(interdits, 1):
+            i = bas.find(m)
+            if i >= 0 and k not in lignes:
+                lignes[k] = bas.count("\n", 0, i) + 1
+    return [(nom, n, "motif local n° %d" % k) for k, n in sorted(lignes.items())]
 
 
 def examiner(nom, contenu, motifs):
@@ -120,13 +169,7 @@ def examiner(nom, contenu, motifs):
                 trouve.append((nom, i, "affectation d'un identifiant"))
             if any(ressemble_a_un_secret(m.group(1)) for m in BEARER.finditer(ligne)):
                 trouve.append((nom, i, "jeton porteur"))
-    if motifs:
-        bas = contenu.lower()
-        for k, m in enumerate(motifs, 1):
-            if m in bas:
-                n = bas[:bas.index(m)].count(b"\n") + 1
-                trouve.append((nom, n, "motif local n° %d" % k))
-    return trouve
+    return trouve + chercher_motifs(nom, contenu, motifs)
 
 
 def objets_par_lot(shas, racine):

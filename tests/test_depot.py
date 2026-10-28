@@ -8,6 +8,7 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 import unittest
 
 RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -47,6 +48,52 @@ class JeuxComplementaires(unittest.TestCase):
         self.assertTrue(ex("donnees_complementaires/penal_13/sous/autre.JSON", b"{}", []))
         self.assertEqual(ex("donnees_complementaires/jurisprudence_13/consolider_jurisprudence.py", b"x = 1\n", []), [])
         self.assertEqual(ex("site/donnees.json", b"{}", []), [])
+
+
+class MotifsLocaux(unittest.TestCase):
+    """Motifs locaux (demande du 28/10/2026) : minuscules Unicode, et phrases autorisées « ! ». Mots fictifs :
+    les vrais motifs ne s'écrivent pas dans le dépôt, le crochet les refuserait."""
+    FICHIER = "# commentaire\n!quinconce immobilier\nvésanie\nquinconce\n!\n"
+
+    def setUp(self):
+        d = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, d)
+        self.chemin = os.path.join(d, "motifs.txt")
+        with open(self.chemin, "w", encoding="utf-8") as f:
+            f.write(self.FICHIER)
+        self.motifs = verifier_secrets.lire_motifs(self.chemin)
+        self.message = os.path.join(d, "COMMIT_EDITMSG")
+
+    def regles(self, texte, encodage="utf-8"):
+        return [(n, r) for _, n, r in verifier_secrets.examiner("f.md", texte.encode(encodage), self.motifs)]
+
+    def test_lecture(self):
+        self.assertEqual(self.motifs, verifier_secrets.Motifs(["vésanie", "quinconce"], ["quinconce immobilier"]))
+
+    def test_capitales_accentuees(self):
+        self.assertEqual(self.regles("Une VÉSANIE.\n"), [(1, "motif local n° 1")])
+        self.assertEqual(self.regles("x\nVÉSANIE\n"), [(2, "motif local n° 1")])        # forme décomposée
+        self.assertEqual(self.regles("VÉSANIE\n", "cp1252"), [(1, "motif local n° 1")])   # fichier Windows
+
+    def test_phrase_autorisee(self):
+        self.assertEqual(self.regles("QUINCONCE IMMOBILIER, syndic.\n"), [])
+        self.assertEqual(self.regles("résidence Quinconce\n"), [(1, "motif local n° 2")])
+        self.assertEqual(self.regles("Quinconce Immobilier\nrésidence QUINCONCE\n"), [(2, "motif local n° 2")])
+        self.assertEqual(self.regles("quinconce immobilierquinconce\n"), [(1, "motif local n° 2")])
+
+    def test_rien_n_est_affiche(self):
+        for _, _, regle in verifier_secrets.examiner("f.md", "VÉSANIE QUINCONCE".encode(), self.motifs):
+            self.assertNotRegex(regle.lower(), "vésanie|quinconce|immobilier")
+
+    def test_message_de_commit(self):
+        with open(self.message, "w", encoding="utf-8") as f:
+            f.write("Titre : QUINCONCE IMMOBILIER\n\nrésidence Quinconce\n# vésanie, commentaire ignoré\n")
+        trouve = verifier_secrets.mode_message(self.message, self.motifs)
+        self.assertEqual([(n, r) for _, n, r in trouve], [(3, "motif local n° 2")])
+
+    def test_liste_simple(self):   # appel sans fichier de motifs : une liste de motifs interdits
+        self.assertEqual(verifier_secrets.examiner("f.md", "VÉSANIE".encode(), ["vésanie"]),
+                         [("f.md", 1, "motif local n° 1")])
 
 
 if __name__ == "__main__":
