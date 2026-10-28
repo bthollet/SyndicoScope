@@ -1,0 +1,59 @@
+name: Erreur de données
+description: Un chiffre, un nom ou un lieu affiché par SyndicoScope vous paraît faux.
+title: "[Données] "
+labels: ["données"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Ce ticket est public.** N'y écrivez ni votre nom, ni votre adresse, ni le numéro d'immatriculation de votre copropriété.
+
+        Les chiffres reprennent ce que les syndics déclarent au registre des copropriétés, et ce que publient le répertoire des entreprises et le BODACC, à leur date. Une déclaration erronée se corrige à la source, par le syndic : la correction est reprise au calcul suivant. Ce formulaire sert surtout aux erreurs de calcul ou d'affichage de SyndicoScope.
+  - type: dropdown
+    id: donnee
+    attributes:
+      label: Quelle donnée ?
+      options:
+        - Chiffres d'un syndic (copropriétés, départs et arrivées, mises à jour du registre)
+        - Informations sur la société (création, effectif, forme juridique, annonces au BODACC)
+        - Groupe ou société dirigeante
+        - Bureau d'un syndic sur la carte
+        - Commune, arrondissement ou contour sur la carte
+        - Autre
+    validations:
+      required: true
+  - type: input
+    id: syndic
+    attributes:
+      label: Syndic concerné
+      description: Nom ou SIREN de la société, s'il s'agit d'un syndic. Ne nommez aucune personne.
+    validations:
+      required: false
+  - type: textarea
+    id: affiche
+    attributes:
+      label: Ce que la page affiche
+    validations:
+      required: true
+  - type: textarea
+    id: juste
+    attributes:
+      label: Ce qui vous paraît juste, et d'où vous le tenez
+      description: Une source publique (registre des copropriétés, répertoire des entreprises, BODACC, site du syndic) permet de vérifier vite.
+    validations:
+      required: true
+  - type: textarea
+    id: contexte
+    attributes:
+      label: Contexte
+      description: Rempli par la page quand vous passez par le bouton « Signaler un problème ou proposer une idée » (version, date des données, zone, filtres, syndic de la fiche ouverte). Vous pouvez le relire et le corriger.
+      render: text
+    validations:
+      required: false
+  - type: checkboxes
+    id: confidentialite
+    attributes:
+      label: Données personnelles
+      options:
+        - label: Ce ticket ne contient ni nom de personne, ni adresse, ni numéro d'immatriculation de copropriété.
+          required: true

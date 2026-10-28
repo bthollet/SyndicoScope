@@ -1,0 +1,40 @@
+name: Idée ou fonction
+description: Proposer une fonction qui vous aiderait à choisir ou à suivre un syndic.
+title: "[Idée] "
+labels: ["idée"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Merci de votre proposition.
+
+        **Ce ticket est public.** N'y écrivez ni votre nom, ni votre adresse, ni le numéro d'immatriculation de votre copropriété.
+  - type: textarea
+    id: idee
+    attributes:
+      label: Votre idée
+      description: Ce que la page devrait montrer ou permettre.
+    validations:
+      required: true
+  - type: textarea
+    id: usage
+    attributes:
+      label: À quelle décision vous aiderait-elle ?
+      description: Par exemple choisir entre deux syndics, préparer une assemblée générale, suivre le syndic actuel.
+    validations:
+      required: false
+  - type: textarea
+    id: contexte
+    attributes:
+      label: Contexte
+      description: Rempli par la page quand vous passez par le bouton « Signaler un problème ou proposer une idée ». Vous pouvez le relire et le corriger.
+      render: text
+    validations:
+      required: false
+  - type: checkboxes
+    id: confidentialite
+    attributes:
+      label: Données personnelles
+      options:
+        - label: Ce ticket ne contient ni nom, ni adresse, ni numéro d'immatriculation de copropriété.
+          required: true
