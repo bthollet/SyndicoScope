@@ -1,0 +1,1155 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light}body{margin:0;font:14px system-ui}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>SyndicoScope</title>
+<meta name="description" content="Les syndics de copropriété de votre quartier, d'après les registres publics : présence, devenir des copropriétés, mises à jour du registre, décisions de justice publiées, dans les Bouches-du-Rhône.">
+<style>
+/* La page dans son cadre, 1 280 px au plus. Une seule teinte d'interface, la prune : elle marque ce qui se tape, ce qui est
+   choisi, ce qui a le focus. La carte et les graphiques gardent leurs jetons, que l'interface ne reprend jamais : un syndic
+   choisi s'y montre par la valeur, foncé sur clair ou clair sur foncé, et par la forme, jamais par la prune. */
+:root {
+  color-scheme: light;
+  /* surfaces, encres et traits de l'interface */
+  --fond: #efeef3;
+  --surface: #ffffff;
+  --surface-2: #f6f5f9;
+  --surface-haute: #ffffff;
+  --surface-creuse: #f3f2f7;
+  --champ: #ffffff;
+  --encre: #1a1d21;
+  --encre-2: #555d66;
+  --trait: #dcdae3;
+  --trait-fort: #807c8e;
+  /* l'accent, la prune : plein, appuyé, doux, voile, filet et halo ; le texte posé sur le plein ; l'anneau du focus */
+  --marque: #7d2a74;
+  --marque-fort: #5f1f58;
+  --marque-doux: #f4e6f1;
+  --marque-voile: #f9f2f7;
+  --marque-trait: #dcc3d6;
+  --marque-halo: rgb(125 42 116 / 0.2);
+  --inverse: #ffffff;
+  --anneau: #7d2a74;
+  --soutien-fond: #5f1f58;
+  --soutien-encre: #ffffff;
+  /* Les données : valeurs inchangées. Le fond et les traits des dessins gardent les gris d'avant, détachés de ceux de l'interface. */
+  --dessin-fond: #f4f5f7;
+  --dessin-trait: #d5d9de;
+  --dessin-trait-fort: #949ca5;
+  --barre: #a3abb3;
+  --barre-fond: #e6e9ec;
+  --pair: #aab2ba;
+  --point-contexte: #d3d8dc;
+  --point-zone: #79828b;
+  --point-choisi: #1a1d21;
+  /* La couleur des données ne vit que sur la carte : trois catégories validées (toutes paires), puis une teinte en quatre marches (ordinale validée). */
+  --carte-1: #2a78d6; --carte-2: #eb6834; --carte-3: #1baf7a;
+  --seq-1: #6da7ec; --seq-2: #3987e5; --seq-3: #1c5cab; --seq-4: #0d366b;
+  --hachure: #dfe3e7;
+  --ombre: rgb(38 20 44 / 0.1);
+  --ombre-forte: rgb(38 20 44 / 0.22);
+  /* Le bouton de soutien reprend les couleurs du bouton Buy Me a Coffee de l'auteur, dans les deux thèmes ; texte foncé, car le blanc sur ce corail ne fait que 3 pour 1. */
+  --cafe-fond: #ff5f5f; --cafe-encre: #111111; --cafe-trait: #000000; --cafe-tasse: #ffdd00;
+  /* la typographie : des polices du système ; la hiérarchie tient à la taille, à la graisse, à l'interlignage et à l'approche */
+  --police: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --police-note: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, monospace;
+  --t-micro: 12px; --t-petit: 13px; --t-ui: 14px; --t-corps: 15px; --t-champ: 16px; --t-titre-3: 15px; --t-titre-2: 18px; --t-marque: 23px;
+  /* trois rayons, pour les commandes, les cartes et les pilules ; les espacements vont par pas de 2 et de 4 px */
+  --rayon: 6px; --rayon-carte: 12px; --rayon-pilule: 999px;
+  --g-nom: 10.5rem;
+  --g-val: 3.4rem;
+  /* la loupe, seule image de cette feuille, dessinée en masque : elle prend la couleur de ce qui la porte */
+  --i-loupe: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='10.5' cy='10.5' r='6.5'/%3E%3Cpath d='m15.5 15.5 5 5'/%3E%3C/svg%3E");
+}
+/* Le sombre n'est pas l'inverse du clair : des surfaces presque noires, à peine teintées de prune, et une prune claire pour l'accent. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --fond: #121116; --surface: #1b1a20; --surface-2: #2a2731; --surface-haute: #222028; --surface-creuse: #17161b; --champ: #141318; --encre: #e6e9ec; --encre-2: #a9b1b9;
+    --trait: #3b3845; --trait-fort: #7d7889;
+    --marque: #e2a7da; --marque-fort: #f0c4ea; --marque-doux: #3a2537; --marque-voile: #2b2331; --marque-trait: #5c3d57; --marque-halo: rgb(226 167 218 / 0.24);
+    --inverse: #1b1a20; --anneau: #e2a7da; --soutien-fond: #3b2240; --soutien-encre: #f6e9f3;
+    --dessin-fond: #21252a; --dessin-trait: #31373d; --dessin-trait-fort: #626b74;
+    --barre: #737c85; --barre-fond: #2a2f35; --pair: #5b646d; --point-contexte: #2c3137; --point-zone: #8a939c; --point-choisi: #f1f3f5;
+    --carte-1: #3987e5; --carte-2: #d95926; --carte-3: #199e70; --seq-1: #1c5cab; --seq-2: #3987e5; --seq-3: #6da7ec; --seq-4: #b7d3f6;
+    --hachure: #1e2226;
+    --ombre: rgb(0 0 0 / 0.4); --ombre-forte: rgb(0 0 0 / 0.62);
+    --cafe-fond: #ff5f5f; --cafe-encre: #111111; --cafe-trait: #000000; --cafe-tasse: #ffdd00;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --fond: #121116; --surface: #1b1a20; --surface-2: #2a2731; --surface-haute: #222028; --surface-creuse: #17161b; --champ: #141318; --encre: #e6e9ec; --encre-2: #a9b1b9;
+  --trait: #3b3845; --trait-fort: #7d7889;
+  --marque: #e2a7da; --marque-fort: #f0c4ea; --marque-doux: #3a2537; --marque-voile: #2b2331; --marque-trait: #5c3d57; --marque-halo: rgb(226 167 218 / 0.24);
+  --inverse: #1b1a20; --anneau: #e2a7da; --soutien-fond: #3b2240; --soutien-encre: #f6e9f3;
+  --dessin-fond: #21252a; --dessin-trait: #31373d; --dessin-trait-fort: #626b74;
+  --barre: #737c85; --barre-fond: #2a2f35; --pair: #5b646d; --point-contexte: #2c3137; --point-zone: #8a939c; --point-choisi: #f1f3f5;
+  --carte-1: #3987e5; --carte-2: #d95926; --carte-3: #199e70; --seq-1: #1c5cab; --seq-2: #3987e5; --seq-3: #6da7ec; --seq-4: #b7d3f6;
+  --hachure: #1e2226;
+  --ombre: rgb(0 0 0 / 0.4); --ombre-forte: rgb(0 0 0 / 0.62);
+  --cafe-fond: #ff5f5f; --cafe-encre: #111111; --cafe-trait: #000000; --cafe-tasse: #ffdd00;
+  color-scheme: dark;
+}
+*, *::before, *::after { box-sizing: border-box; }
+/* Sans cette règle, un élément « hidden » qui reçoit un display (grid, flex) reste affiché : défaut de la première version. */
+[hidden] { display: none !important; }
+body {
+  margin: 0; background: var(--fond); color: var(--encre); font-family: var(--police); font-size: var(--t-corps); line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 16px 48px;
+  -webkit-text-size-adjust: 100%; text-size-adjust: 100%;
+}
+h1, h2, h3, h4 { margin: 0; line-height: 1.22; text-wrap: balance; letter-spacing: -0.012em; }
+h1 { font-size: 1.4rem; font-weight: 800; }
+h2 { font-size: var(--t-titre-2); font-weight: 800; }
+h3 { font-size: var(--t-titre-3); font-weight: 700; }
+p { margin: 0; }
+button, input, select, textarea { font: inherit; color: inherit; }
+::selection { background: var(--marque-doux); color: var(--encre); }
+:focus-visible { outline: 2px solid var(--anneau); outline-offset: 2px; }
+.vh { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; } }
+
+.seg { position: relative; display: inline-flex; }
+.seg input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.seg span { display: inline-block; padding: 3px 9px; border: 1px solid var(--trait-fort); border-radius: var(--rayon-pilule); background: var(--surface); cursor: pointer; }
+.seg input:checked + span { background: var(--marque); color: var(--inverse); border-color: var(--marque); }
+.seg input:focus-visible + span { outline: 2px solid var(--anneau); outline-offset: 2px; }
+.seg.attente span { border-style: dashed; }
+.app .seg span { padding: 5px 11px; }
+
+/* ---------- le cadre et la page */
+.cadre { max-width: 1280px; margin: 0 auto; }
+.cadre.etroit { max-width: 360px; padding: 12px 16px; border: 1px dashed var(--trait-fort); border-radius: var(--rayon); }
+.app {
+  container: app / inline-size; background: var(--surface); border: 1px solid var(--trait); border-radius: var(--rayon-carte);
+  box-shadow: 0 1px 2px var(--ombre), 0 18px 40px -28px var(--ombre-forte);
+}
+.app-dedans { display: grid; gap: 16px; padding: 14px; min-width: 0; }
+@container app (min-width: 900px) { .app-dedans { gap: 20px; padding: 20px 28px 28px; } }
+/* ---------- la tête : la marque, le département chargé, les dates des données */
+.tete { display: grid; gap: 6px; padding-bottom: 12px; border-bottom: 1px solid var(--trait); }
+.tete-ligne { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; }
+.marque { display: inline-flex; align-items: center; gap: 9px; font-weight: 800; font-size: var(--t-marque); line-height: 1.1; letter-spacing: -0.03em; color: var(--encre); }
+.marque::before {
+  content: ""; flex: none; width: 28px; height: 28px; background: var(--marque);
+  -webkit-mask: var(--i-loupe) center / contain no-repeat; mask: var(--i-loupe) center / contain no-repeat;
+}
+/* ---------- le bandeau de soutien : fin, en prune, au-dessus de la tête ; le bouton du café garde ses couleurs */
+.soutien {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 14px;
+  padding: 7px 16px; background: var(--soutien-fond); color: var(--soutien-encre);
+  border-radius: calc(var(--rayon-carte) - 1px) calc(var(--rayon-carte) - 1px) 0 0; font-size: 13.5px; line-height: 1.35;
+}
+.soutien-texte { min-width: 0; }
+.soutien-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.soutien-btn {
+  display: inline-flex; align-items: center; min-height: 30px; padding: 3px 12px;
+  border: 1px solid currentColor; border-radius: var(--rayon-pilule); background: transparent; color: inherit;
+  font-size: 13px; font-weight: 700; text-decoration: none; white-space: nowrap; cursor: pointer;
+  transition: background-color 0.15s, color 0.15s, filter 0.15s;
+}
+.soutien-btn:hover, .soutien-btn[aria-expanded="true"] { background: var(--soutien-encre); color: var(--soutien-fond); }
+.soutien-btn.soutien-cafe { gap: 6px; padding-left: 9px; background: var(--cafe-fond); color: var(--cafe-encre); border-color: var(--cafe-trait); }
+.soutien-btn.soutien-cafe:hover { background: var(--cafe-fond); color: var(--cafe-encre); filter: brightness(0.93); }
+.tasse { width: 16px; height: 16px; flex: none; }
+.tasse .t-corps { fill: var(--cafe-tasse); stroke: var(--cafe-trait); stroke-width: 1.2; stroke-linejoin: round; }
+.tasse .t-trait { fill: none; stroke: var(--cafe-trait); stroke-width: 1.2; stroke-linecap: round; }
+.soutien :focus-visible { outline-color: var(--soutien-encre); }
+.soutien .court { display: none; }
+.avis {
+  display: grid; gap: 8px; margin: 0 16px; padding: 12px 14px; border: 1px solid var(--trait-fort); border-top: 0;
+  border-radius: 0 0 var(--rayon-carte) var(--rayon-carte); background: var(--surface-2); font-size: 13.5px;
+}
+.avis ul { margin: 0; padding-left: 1.2em; display: grid; gap: 4px; }
+.avis a { color: var(--marque); font-weight: 700; text-underline-offset: 3px; }
+.avis a:hover { color: var(--marque-fort); }
+.avis-note { color: var(--encre-2); font-size: 12.5px; }
+.avis-form { display: grid; gap: 10px; }
+.avis-types { display: grid; gap: 4px; margin: 0; padding: 0; border: 0; min-width: 0; }
+.avis-types legend { padding: 0; margin-bottom: 2px; }
+.avis-types label { display: flex; gap: 8px; align-items: baseline; min-height: 28px; }
+.avis-types input { accent-color: var(--marque); }
+.avis-form textarea {
+  width: 100%; min-width: 0; padding: 8px 10px; border: 1px solid var(--trait-fort); border-radius: var(--rayon);
+  background: var(--champ); color: var(--encre); font: inherit; resize: vertical;
+}
+.avis-form textarea:focus-visible { border-color: var(--marque); outline-offset: 0; }
+.avis-ctx > summary, .avis-github > summary { cursor: pointer; font-size: 13px; font-weight: 600; min-height: 28px; color: var(--marque); }
+.avis-ctx textarea { margin-top: 6px; font-family: var(--police-note); font-size: 12px; }
+.avis-envoi { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+.avis-statut { font-size: 13px; min-width: 0; }
+@container app (max-width: 420px) {
+  .soutien { padding: 6px 12px; gap: 4px 8px; }
+  .soutien .long { display: none; }
+  .soutien .court { display: inline; }
+  .avis { margin: 0 8px; }
+}
+.dept, .dates { color: var(--encre-2); }
+.dept {
+  display: inline-flex; align-items: center; min-height: 26px; padding: 2px 11px; border: 1px solid var(--trait);
+  border-radius: var(--rayon-pilule); background: var(--surface-2); color: var(--encre); font-size: 13px; font-weight: 700;
+}
+.dept:empty { display: none; }
+.dates { font-size: 12.5px; }
+.tete .dates { flex: 1 1 22rem; min-width: 0; font-size: 12px; line-height: 1.4; }
+.erreur { padding: 10px 14px; border: 2px solid var(--marque); border-radius: var(--rayon); background: var(--marque-voile); font-weight: 700; }
+
+/* ---------- les entrées */
+.entree { display: grid; gap: 14px; min-width: 0; }
+.etapes { margin: 0; padding-left: 1.5em; display: grid; gap: 20px; }
+.etapes > li { display: grid; gap: 10px; min-width: 0; }
+.etapes > li::marker { font-weight: 800; color: var(--marque); }
+fieldset { border: 0; padding: 0; margin: 0; min-width: 0; display: grid; gap: 6px; }
+legend { padding: 0; margin-bottom: 6px; font-weight: 700; font-size: var(--t-ui); }
+label.titre-champ { font-weight: 700; font-size: var(--t-ui); }
+.facultatif { font-weight: 400; color: var(--encre-2); }
+input[type="text"] {
+  width: 100%; max-width: 28rem; min-height: 40px; padding: 8px 12px; border: 1px solid var(--trait-fort); border-radius: var(--rayon);
+  background: var(--champ); color: var(--encre);
+}
+input[type="text"]::placeholder { color: var(--encre-2); opacity: 1; }
+.aide { font-size: var(--t-petit); color: var(--encre-2); max-width: 68ch; }
+.statut { font-size: 13.5px; max-width: 68ch; }
+.bouchon {
+  max-width: 68ch; padding: 10px 12px; font-size: 13.5px; border: 1px dashed var(--trait-fort); border-radius: var(--rayon);
+  background: repeating-linear-gradient(135deg, transparent 0 7px, var(--hachure) 7px 8px);
+}
+/* Les puces : une pilule bordée ; appuyée, elle se remplit de prune et prend une coche, pour ne pas dire son état par la seule couleur. */
+.choix-mode, .puces { display: flex; flex-wrap: wrap; gap: 6px; }
+.puce {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 4px 13px;
+  border: 1px solid var(--trait-fort); border-radius: var(--rayon-pilule); background: var(--surface-haute); color: var(--encre);
+  font-size: var(--t-ui); font-weight: 600; line-height: 1.2; font-variant-numeric: tabular-nums; cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+}
+.puce:hover { border-color: var(--marque); background: var(--marque-voile); color: var(--marque-fort); }
+.puce:active { transform: translateY(1px); }
+.puce[aria-pressed="true"] { background: var(--marque); color: var(--inverse); border-color: var(--marque); }
+.puce[aria-pressed="true"]:hover { background: var(--marque-fort); border-color: var(--marque-fort); color: var(--inverse); }
+.puce[aria-pressed="true"]::before, .lien[aria-pressed="true"]::before {
+  content: ""; flex: none; width: 5px; height: 9px; margin: -3px 1px 0 -1px;
+  border: solid currentColor; border-width: 0 2px 2px 0; transform: rotate(45deg);
+}
+.puce.petite { min-height: 28px; gap: 5px; padding: 2px 10px; font-size: var(--t-petit); }
+.btn-plein {
+  justify-self: start; min-height: 44px; border: 0; border-radius: 10px; padding: 10px 20px;
+  background: var(--marque); color: var(--inverse); font-weight: 700; cursor: pointer; transition: background-color 0.15s;
+}
+.btn-plein:hover { background: var(--marque-fort); }
+.btn-plein:disabled { background: var(--surface-2); color: var(--encre-2); box-shadow: inset 0 0 0 1px var(--trait-fort); cursor: not-allowed; }
+/* Les liens d'action : prune, soulignés, jamais du bleu des liens, qui se confondrait avec celui de la carte. */
+.lien {
+  justify-self: start; display: inline-flex; align-items: center; gap: 6px; min-height: 24px;
+  background: none; border: 0; padding: 0; cursor: pointer; font-size: var(--t-ui); font-weight: 600; color: var(--marque);
+  text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px;
+}
+.lien:hover { color: var(--marque-fort); text-decoration-thickness: 2px; }
+.champ-lieu { position: relative; max-width: 28rem; }
+.champ-lieu ul {
+  position: absolute; z-index: 6; top: 100%; left: 0; right: 0; margin: 6px 0 0; padding: 6px; list-style: none;
+  max-height: 19rem; overflow: auto; background: var(--surface-haute); border: 1px solid var(--trait-fort);
+  border-radius: var(--rayon-carte); box-shadow: 0 2px 4px var(--ombre), 0 18px 36px -12px var(--ombre-forte);
+}
+.champ-lieu li { display: grid; gap: 1px; min-height: 40px; align-content: center; padding: 7px 12px; border-radius: 8px; cursor: pointer; }
+.champ-lieu li small { font-size: var(--t-micro); color: var(--encre-2); }
+.champ-lieu li.actif, .champ-lieu li:hover { background: var(--marque-doux); }
+.champ-lieu li.actif { box-shadow: inset 3px 0 0 var(--marque); }
+.champ-lieu li.inactif { cursor: default; color: var(--encre-2); }
+.champ-lieu li.inactif:hover { background: none; }
+/* La barre de recherche : le lieu et la jauge des lots sur une ligne, le cercle et la construction en dessous. */
+.barre-recherche { display: grid; gap: 12px 20px; grid-template-columns: minmax(0, 1fr); align-items: end; }
+@container app (min-width: 700px) { .barre-recherche { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); } }
+.barre-recherche .champ { display: grid; gap: 4px; min-width: 0; }
+.barre-recherche .champ-lieu, .barre-recherche input[type="text"] { max-width: none; }
+.jauge output {
+  display: inline-block; margin-left: 8px; padding: 0 9px; border-radius: var(--rayon-pilule);
+  background: var(--marque-doux); color: var(--marque-fort); font-size: 12.5px; font-weight: 700; line-height: 1.65;
+  font-variant-numeric: tabular-nums; vertical-align: 1px;
+}
+.jauge input[type="range"] { width: 100%; height: 30px; margin: 2px 0 0; accent-color: var(--marque); cursor: pointer; }
+.jauge-reperes { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--encre-2); font-variant-numeric: tabular-nums; }
+.barre-fine { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px; }
+/* Les listes déroulantes : un champ bordé, la flèche dessinée en dégradés de la couleur du texte. */
+.barre-fine select, .trier select {
+  min-height: 34px; max-width: 15rem; padding: 4px 30px 4px 10px; border: 1px solid var(--trait-fort); border-radius: var(--rayon);
+  background-color: var(--champ); color: var(--encre); font-size: 13.5px; cursor: pointer;
+  -webkit-appearance: none; appearance: none;
+  background-image: linear-gradient(45deg, var(--champ) 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, var(--champ) 50%);
+  background-position: calc(100% - 15px) calc(50% + 1px), calc(100% - 10px) calc(50% + 1px);
+  background-size: 5px 5px; background-repeat: no-repeat;
+}
+.barre-fine select:hover, .trier select:hover { border-color: var(--marque); }
+.barre-fine select:disabled, .trier select:disabled { opacity: 0.55; cursor: default; }
+.lien[aria-pressed="true"] { font-weight: 800; text-decoration: none; }
+
+/* ---------- le bandeau : la recherche, les lieux choisis, les filtres, puis les onglets */
+.bandeau {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; display: grid; gap: 10px;
+  margin: -6px -6px 0; padding: 8px 6px 10px; background: var(--surface); border-bottom: 1px solid var(--trait);
+}
+/* À toutes les largeurs, le bandeau colle par sa seule rangée d'onglets ; la recherche et la jauge remontent avec la page.
+   Collé en entier, il prenait un tiers d'un écran de portable (264 px sur 800). */
+.bandeau { top: calc(env(safe-area-inset-top, 0px) - var(--bandeau-retrait, 0px)); }
+/* Sur téléphone, la bande sous la barre du système reste peinte : rien ne défile au-dessus du bandeau. */
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--fond); }
+/* La recherche sur un fond voilé de prune : des champs blancs, hauts, bordés, que l'on a envie de remplir. */
+.bande-recherche {
+  display: grid; gap: 12px 14px; grid-template-columns: minmax(0, 1fr); align-items: end;
+  padding: 14px; border: 1px solid var(--marque-trait); border-radius: var(--rayon-carte); background: var(--marque-voile);
+}
+@container app (min-width: 760px) { .bande-recherche { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px 18px; } }
+@container app (min-width: 1080px) { .bande-recherche { grid-template-columns: minmax(0, 5fr) minmax(0, 4fr) minmax(0, 4fr) auto; } }
+.bande-recherche .btn-filtres { justify-self: start; min-height: 48px; }
+.bande-recherche .champ { display: grid; gap: 6px; min-width: 0; }
+.bande-recherche label.titre-champ { font-size: 13.5px; font-weight: 700; color: var(--encre); }
+.bande-recherche .champ-lieu, .bande-recherche input[type="text"] { max-width: none; }
+.bande-recherche input[type="text"] {
+  min-height: 48px; padding: 11px 14px 11px 42px; border: 1.5px solid var(--trait-fort); border-radius: 10px;
+  background: var(--champ); font-size: var(--t-champ); line-height: 1.3; box-shadow: inset 0 1px 2px var(--ombre);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.bande-recherche input[type="text"]:hover { border-color: var(--encre-2); }
+.bande-recherche input[type="text"]:focus-visible { outline: 2px solid var(--anneau); outline-offset: 0; border-color: var(--anneau); box-shadow: 0 0 0 5px var(--marque-halo); }
+.bande-recherche .champ-lieu::before {
+  content: ""; position: absolute; left: 14px; top: 50%; z-index: 1; width: 18px; height: 18px; margin-top: -9px;
+  background: var(--marque); pointer-events: none;
+  -webkit-mask: var(--i-loupe) center / contain no-repeat; mask: var(--i-loupe) center / contain no-repeat;
+}
+.bande-recherche .champ-copro::before { background: var(--encre-2); }
+.btn-filtres {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 8px 16px;
+  border: 1.5px solid var(--trait-fort); border-radius: 10px; background: var(--surface-haute); color: var(--encre);
+  cursor: pointer; white-space: nowrap; font-weight: 700; transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+}
+.btn-filtres:hover { border-color: var(--marque); background: var(--marque-voile); color: var(--marque-fort); }
+.btn-filtres[aria-expanded="true"] { background: var(--marque-doux); border-color: var(--marque); color: var(--marque-fort); }
+.bande-recherche .btn-filtres::after {
+  content: ""; flex: none; width: 7px; height: 7px; margin: -4px 1px 0; border: solid currentColor; border-width: 0 2px 2px 0;
+  transform: rotate(45deg); transition: transform 0.15s;
+}
+.bande-recherche .btn-filtres[aria-expanded="true"]::after { margin-top: 4px; transform: rotate(-135deg); }
+.filtres {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; padding: 14px 16px;
+  border: 1px solid var(--trait); border-radius: var(--rayon-carte); background: var(--surface-2);
+}
+.filtres .trier { color: var(--encre); font-weight: 600; font-size: 13.5px; }
+.lieux-choisis { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.lieux-choisis:empty { display: none; }
+.lieux-choisis > .trier { margin-right: 2px; font-size: 11.5px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; }
+/* La réglette des trimestres : deux poignées sur une même piste ; la part hachurée attend l'historique du registre. */
+.periode { display: grid; gap: 4px; flex: 1 1 100%; min-width: 0; max-width: 36rem; }
+.periode output {
+  display: inline-block; margin-left: 8px; padding: 0 9px; border-radius: var(--rayon-pilule);
+  background: var(--marque-doux); color: var(--marque-fort); font-size: 12.5px; font-weight: 700; line-height: 1.65; font-variant-numeric: tabular-nums;
+}
+.reglette { position: relative; height: 32px; }
+.reglette-piste { position: absolute; left: 12px; right: 12px; top: 14px; height: 4px; border-radius: 2px; background: var(--trait); }
+.reglette-piste i { position: absolute; top: -2px; width: 1px; height: 8px; margin-left: -0.5px; background: var(--trait-fort); }
+/* Un trimestre sans fichier publié : un cercle vide sur la piste. */
+.reglette-piste i.sans-fichier { top: -3px; width: 10px; height: 10px; margin-left: -5px; box-sizing: border-box; border: 2px solid var(--encre-2); border-radius: 50%; background: var(--surface-haute); }
+.reglette-hors { position: absolute; top: -4px; bottom: -4px; background: repeating-linear-gradient(135deg, transparent 0 4px, var(--trait-fort) 4px 5px); opacity: 0.6; }
+.reglette-sel { position: absolute; top: 0; bottom: 0; border-radius: 2px; background: var(--marque); }
+.reglette input[type="range"] { position: absolute; inset: 0; width: 100%; height: 32px; margin: 0; background: none; pointer-events: none; -webkit-appearance: none; appearance: none; }
+.reglette input[type="range"]::-webkit-slider-runnable-track { height: 32px; background: none; }
+.reglette input[type="range"]::-moz-range-track { background: none; }
+.reglette input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; box-sizing: border-box; width: 24px; height: 24px; margin-top: 4px; border: 2px solid var(--marque); border-radius: 50%; background: var(--surface-haute); box-shadow: 0 1px 3px var(--ombre-forte); pointer-events: auto; cursor: pointer; }
+.reglette input[type="range"]::-moz-range-thumb { box-sizing: border-box; width: 24px; height: 24px; border: 2px solid var(--marque); border-radius: 50%; background: var(--surface-haute); box-shadow: 0 1px 3px var(--ombre-forte); pointer-events: auto; cursor: pointer; }
+.reglette input[type="range"]:hover::-webkit-slider-thumb { background: var(--marque-doux); }
+.reglette input[type="range"]:hover::-moz-range-thumb { background: var(--marque-doux); }
+.reglette input[type="range"]:focus-visible { outline: none; }
+.reglette input[type="range"]:focus-visible::-webkit-slider-thumb { outline: 2px solid var(--anneau); outline-offset: 2px; }
+.reglette input[type="range"]:focus-visible::-moz-range-thumb { outline: 2px solid var(--anneau); outline-offset: 2px; }
+.reglette-reperes { position: relative; height: 1.3em; margin: 0 12px; font-size: 11.5px; color: var(--encre-2); font-variant-numeric: tabular-nums; }
+.reglette-reperes span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+.note-periode { max-width: 65ch; font-size: 12.5px; color: var(--encre-2); }
+.note-bandeau { font-size: 12.5px; color: var(--encre-2); }
+/* La page nationale, avant le chargement d'un département : les deux champs et l'accueil, rien d'autre. */
+.amorce .jauge, .amorce #btn-filtres, .amorce #lieux-choisis, .amorce #etiquettes, .amorce #onglets, .amorce #resultat, .amorce #dept, .amorce #dates, .amorce #pied { display: none !important; }
+.amorce-accueil { display: grid; gap: 6px; margin: 16px 0 4px; padding: 16px 18px; border: 1px solid var(--trait); border-radius: var(--rayon-carte); background: var(--surface); }
+.amorce-accueil h2 { margin: 0; font-size: 1.15rem; text-wrap: balance; }
+.amorce-accueil p { margin: 0; max-width: 70ch; font-size: var(--t-corps); line-height: 1.5; color: var(--encre-2); }
+.note-national { margin: 10px 0 0; color: var(--encre); font-weight: 600; }
+/* Les étiquettes : un lieu choisi, un filtre posé ; la croix se remplit au survol. */
+.etiquettes { display: flex; flex-wrap: wrap; gap: 6px; }
+.etiquettes:empty { display: none; }
+.chip {
+  display: inline-flex; align-items: center; gap: 2px; min-height: 30px; padding: 2px 3px 2px 12px;
+  border: 1px solid var(--marque-trait); border-radius: var(--rayon-pilule); background: var(--marque-doux);
+  color: var(--encre); font-size: var(--t-petit); font-weight: 600;
+}
+.chip.hors { border-style: dashed; border-color: var(--trait-fort); background: var(--surface-haute); }
+.chip button {
+  display: inline-grid; place-items: center; min-width: 26px; min-height: 26px; padding: 0; border: 0; border-radius: var(--rayon-pilule);
+  background: none; color: var(--marque-fort); cursor: pointer; font-size: 17px; line-height: 1;
+}
+.chip button:hover { background: var(--marque); color: var(--inverse); }
+.note-methode summary { cursor: pointer; font-weight: 700; color: var(--marque); }
+.note-methode summary::marker { color: var(--marque); }
+.note-methode ol { margin: 8px 0; padding-left: 1.4em; display: grid; gap: 4px; }
+/* Les onglets : une piste grise ; l'onglet actif est une pastille pleine, en gras, qui se voit au premier regard. */
+.onglets { display: flex; gap: 4px; padding: 4px; border: 1px solid var(--trait-fort); border-radius: var(--rayon-carte); background: var(--surface-2); }
+.onglets button {
+  flex: 1; min-height: 40px; padding: 6px 6px; border: 0; border-radius: 8px; background: none;
+  color: var(--encre); font-size: var(--t-ui); font-weight: 650; line-height: 1.2; cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+.onglets button:hover { background: var(--marque-doux); color: var(--marque-fort); }
+.onglets button[aria-selected="true"] {
+  color: var(--inverse); background: var(--marque); font-weight: 800;
+  box-shadow: 0 1px 2px var(--ombre-forte), 0 6px 14px -8px var(--ombre-forte);
+}
+.onglets button[aria-selected="true"]:hover { background: var(--marque-fort); color: var(--inverse); }
+
+/* ---------- le résultat */
+.resultat { display: grid; gap: 14px; min-width: 0; }
+.criteres { display: grid; gap: 8px; padding: 12px 14px; border: 1px solid var(--trait); border-radius: var(--rayon-carte); background: var(--surface-2); }
+.crit { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.crit-titre { min-width: 11em; font-size: 11.5px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; color: var(--encre-2); }
+.crit-val { font-weight: 700; }
+.crit-note, .crit-copro { font-size: var(--t-petit); color: var(--encre-2); }
+.resume { max-width: 78ch; font-size: var(--t-corps); line-height: 1.5; }
+/* La barre des vues : une seule vue à la fois, à toutes les largeurs ; chaque vue est une carte posée sur la page. */
+.vues { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); align-items: start; }
+.vue {
+  container: vue / inline-size; display: none; min-width: 0; border: 1px solid var(--trait); border-radius: var(--rayon-carte);
+  background: var(--surface-haute); box-shadow: 0 1px 2px var(--ombre);
+}
+.vue.active { display: block; }
+.vues.avec-fiche .vue { display: none; }
+@container app (min-width: 900px) {
+  .vues.avec-fiche { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
+  .vues.avec-fiche .vue.active { display: block; grid-column: 1; grid-row: 1; }
+  .fiche { grid-column: 2; grid-row: 1; }
+  .defile { max-height: 36rem; overflow: auto; }
+}
+.vue-tete { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 14px; padding: 14px 16px 12px; border-bottom: 1px solid var(--trait); }
+.vue-corps { display: grid; gap: 12px; padding: 14px 16px 16px; min-width: 0; }
+.trier { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; min-width: 0; font-size: var(--t-petit); color: var(--encre-2); }
+/* Le plafond reste celui des listes, 15rem, sans pourcentage : un pourcentage est ignoré quand le navigateur calcule la place que
+   demande la liste, et le long nom d'un syndic élargissait la carte de 70 px à 390 px. */
+.trier select { min-width: 0; }
+.legende, .limite, .source, .pairs, .calcul { font-size: 12.5px; line-height: 1.5; color: var(--encre-2); max-width: 78ch; }
+.legende, .limite { font-size: var(--t-petit); }
+.legende strong { color: var(--encre); }
+/* Une mise en garde : discrète, jamais cachée ; un filet à sa gauche la détache du texte qui l'entoure. */
+.limite { padding-left: 10px; border-left: 3px solid var(--trait-fort); }
+.vide { padding: 18px 16px; border: 1px dashed var(--trait-fort); border-radius: var(--rayon-carte); background: var(--surface-2); font-size: var(--t-ui); color: var(--encre-2); }
+
+/* ---------- le tableau */
+.tab { width: 100%; border-collapse: collapse; font-size: var(--t-ui); font-variant-numeric: tabular-nums; }
+.tab th {
+  position: sticky; top: 0; z-index: 1; padding: 8px 10px 7px; text-align: left; vertical-align: bottom;
+  font-size: 12.5px; font-weight: 700; color: var(--encre-2); background: var(--surface-haute); border-bottom: 1px solid var(--trait-fort);
+}
+.tab th button {
+  min-height: 24px; padding: 0; border: 0; background: none; color: inherit; text-align: left; font-weight: 700; cursor: pointer;
+  text-decoration: underline dotted; text-decoration-thickness: 1px; text-underline-offset: 3px;
+}
+.tab th button:hover { color: var(--marque); }
+/* La colonne qui trie : en prune, soulignée d'un trait plein, et sa flèche. */
+.tab th[aria-sort] { color: var(--marque); }
+.tab th[aria-sort] button { text-decoration: underline; text-decoration-thickness: 2px; }
+.tab th[aria-sort="descending"]::after { content: " ↓"; }
+.tab th[aria-sort="ascending"]::after { content: " ↑"; }
+.tab td { padding: 9px 10px; vertical-align: top; border-bottom: 1px solid var(--trait); }
+.tab tbody tr { cursor: pointer; }
+.tab tbody tr:hover td { background: var(--marque-voile); }
+.tab tbody tr.choisi td { background: var(--marque-doux); }
+.tab tbody tr.choisi td:first-child { box-shadow: inset 4px 0 0 var(--marque); }
+.tab tbody tr.sep { cursor: default; }
+.tab tbody tr.sep:hover td { background: none; }
+.nom { padding: 0; border: 0; background: none; color: var(--encre); text-align: left; font-weight: 700; cursor: pointer; }
+.nom:hover { color: var(--marque); text-decoration: underline; text-underline-offset: 3px; }
+.forme { margin-left: 6px; font-size: var(--t-micro); color: var(--encre-2); }
+.etiq {
+  display: inline-block; margin: 4px 4px 0 0; padding: 0 6px; border: 1px solid var(--trait-fort); border-radius: 4px;
+  background: var(--surface-haute); font-size: 11.5px; line-height: 1.6; color: var(--encre-2);
+}
+.val { display: block; font-weight: 500; }
+.sous { display: block; font-size: var(--t-micro); color: var(--encre-2); }
+.sans { font-size: var(--t-petit); color: var(--encre-2); }
+.piste { position: relative; display: block; height: 6px; min-width: 3rem; margin-top: 5px; background: var(--barre-fond); }
+.plein { position: absolute; left: 0; top: 0; bottom: 0; background: var(--barre); }
+.seg-enc { position: absolute; top: 0; bottom: 0; min-width: 2px; background: var(--barre); }
+.choisi .plein, .choisi .seg-enc { background: var(--point-choisi); }
+.btn-fiche {
+  display: inline-flex; align-items: center; gap: 7px; min-height: 32px; padding: 4px 11px 4px 12px;
+  border: 1px solid var(--trait-fort); border-radius: 8px; background: var(--surface-haute); color: var(--encre);
+  font-size: var(--t-petit); font-weight: 600; white-space: nowrap; cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+}
+.btn-fiche::after { content: ""; flex: none; width: 6px; height: 6px; border: solid currentColor; border-width: 2px 2px 0 0; transform: rotate(45deg); }
+.btn-fiche:hover { border-color: var(--marque); background: var(--marque-voile); color: var(--marque-fort); }
+/* Les groupes de colonnes, et le taux en point et marge : point = son taux, trait gris = sa marge à 95 %, trait vertical = le département. */
+.groupes-col { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+/* Le « ? » d'un en-tête : une cible de 24 px, qui ouvre la bulle au-dessus du tableau. */
+.tab th button.aide-col {
+  margin-left: 4px; min-width: 24px; min-height: 24px; padding: 0 6px; border: 1px solid var(--trait-fort); border-radius: var(--rayon-pilule);
+  background: var(--surface-haute); color: var(--encre-2); font-size: var(--t-micro); font-weight: 800; line-height: 1;
+  text-decoration: none; text-align: center; vertical-align: middle;
+}
+.tab th button.aide-col:hover { border-color: var(--marque); color: var(--marque); }
+.tab th button.aide-col[aria-expanded="true"] { background: var(--marque); color: var(--inverse); border-color: var(--marque); }
+.bulle {
+  margin: 0; max-width: 75ch; padding: 10px 12px 10px 14px; border: 1px solid var(--marque-trait); border-left: 4px solid var(--marque);
+  border-radius: var(--rayon); background: var(--marque-voile); font-size: var(--t-petit);
+}
+.bulle .sous { color: var(--encre-2); }
+.choix-col { display: grid; gap: 10px; padding: 12px 14px; border: 1px dashed var(--trait-fort); border-radius: var(--rayon-carte); background: var(--surface-2); }
+.cc-aide { margin: 0; font-size: var(--t-petit); color: var(--encre-2); max-width: 75ch; }
+.cc-liste { display: grid; gap: 0; margin: 0; padding-left: 1.6em; }
+.cc-liste li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 2px 12px; padding: 3px 0; border-bottom: 1px solid var(--trait); }
+.cc-liste li::marker { color: var(--encre-2); }
+.cc-nom { min-width: 0; font-size: 13.5px; }
+.cc-actions { display: inline-flex; gap: 2px; }
+.cc-bouton { justify-content: center; min-width: 32px; min-height: 28px; padding: 0 6px; border-radius: 6px; font-size: var(--t-petit); text-align: center; text-decoration: none; }
+.cc-bouton:hover { background: var(--marque-doux); }
+.cc-bouton[aria-disabled="true"] { opacity: 0.35; cursor: default; }
+.cc-bouton[aria-disabled="true"]:hover { background: none; }
+.cc-ajout { display: grid; gap: 6px; }
+.cc-groupe { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+.cc-titre { min-width: 10rem; font-size: 12.5px; color: var(--encre-2); }
+.defs { font-size: var(--t-petit); }
+.defs summary { min-height: 24px; cursor: pointer; font-weight: 700; color: var(--marque); }
+.defs summary::marker { color: var(--marque); }
+.defs summary:hover { color: var(--marque-fort); }
+.defs dl { display: grid; gap: 8px; margin: 8px 0 0; }
+.defs dt { font-weight: 700; }
+.defs dd { margin: 0; max-width: 75ch; color: var(--encre-2); }
+/* Le jumeau d'un graphique, en tableau : il s'ouvre comme les définitions. */
+.jumeau > summary { min-height: 24px; cursor: pointer; font-size: var(--t-petit); font-weight: 700; color: var(--marque); }
+.jumeau > summary::marker { color: var(--marque); }
+.jumeau > summary:hover { color: var(--marque-fort); }
+.jumeau[open] > summary { margin-bottom: 6px; }
+.th-sous { display: block; font-weight: 400; font-size: 11.5px; color: var(--encre-2); }
+.piste.taux { height: 8px; }
+.piste .marge, .g-marge { position: absolute; top: 1px; bottom: 1px; background: var(--barre); }
+.piste .pt, .g-pt { position: absolute; top: 50%; width: 9px; height: 9px; border-radius: 50%; background: var(--encre); border: 1.5px solid var(--surface); transform: translate(-50%, -50%); }
+.piste .ref, .g-ref { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; background: var(--encre-2); }
+.choisi .piste .marge, .g-ligne.choisi .g-marge { background: var(--encre-2); }
+/* Écran étroit : chaque syndic devient une carte, ses colonnes nommées au-dessus de leur valeur. */
+@container vue (max-width: 560px) {
+  .tab thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .tab, .tab tbody, .tab td { display: block; width: 100%; }
+  .tab tr {
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px 12px; margin-bottom: 8px;
+    padding: 12px 12px 12px 14px; border: 1px solid var(--trait); border-radius: var(--rayon-carte); background: var(--surface-haute);
+  }
+  .tab td { padding: 0; border: 0; }
+  .tab td:first-child, .tab td.td-fiche { grid-column: 1 / -1; }
+  .tab td[data-label]::before { content: attr(data-label); display: block; margin-bottom: 1px; font-size: 11.5px; font-weight: 600; color: var(--encre-2); }
+  .tab td:first-child::before { content: none; }
+  .tab tbody tr:hover { border-color: var(--marque-trait); background: var(--marque-voile); }
+  .tab tbody tr.choisi { background: var(--marque-doux); border-color: var(--marque); box-shadow: inset 4px 0 0 var(--marque); }
+  .tab tbody tr.choisi td, .tab tbody tr:hover td { background: none; }
+  .tab tbody tr.choisi td:first-child { box-shadow: none; }
+  .tab tbody tr.sep { display: block; margin: 0 0 8px; padding: 0; border: 0; background: none; text-align: center; }
+}
+
+/* ---------- la carte : son fond et ses traits gardent les gris validés avec les couleurs des données */
+.carte-boite { position: relative; width: 100%; max-width: 100%; aspect-ratio: 4 / 3; overflow: hidden; border-radius: 8px; background: var(--dessin-fond); touch-action: manipulation; }
+@container vue (max-width: 560px) { .carte-boite { aspect-ratio: 1 / 1; } }
+.carte-boite canvas, .carte-boite svg { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+.carte-boite svg { cursor: pointer; }
+.contour { fill: none; stroke: var(--dessin-trait-fort); stroke-width: 0.6; }
+.contour.zone { stroke: var(--encre); stroke-width: 2; }
+.bureau { fill: var(--surface); stroke: var(--encre-2); stroke-width: 1.3; }
+.bureau.anonyme { stroke: var(--dessin-trait-fort); }
+.bureau.choisi { fill: var(--point-choisi); stroke: var(--surface); stroke-width: 1.5; }
+/* Un syndic choisi : les carrés des autres s'évident, pour laisser voir ses copropriétés dessous. */
+.bureau.estompe { fill: none; stroke-opacity: 0.35; }
+.etiq-carte { font: 700 12px var(--police); fill: var(--encre); paint-order: stroke; stroke: var(--surface); stroke-width: 3.5px; stroke-linejoin: round; }
+.cercle { fill: none; stroke: var(--encre); stroke-width: 1.5; stroke-dasharray: 5 4; }
+.centre { fill: none; stroke: var(--encre); stroke-width: 2; }
+.carte-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+/* La carte navigable : la molette ne zoome qu'après un clic dans la carte ; au doigt, un premier toucher l'active. */
+.carte-boite:focus-visible { outline: 2px solid var(--anneau); outline-offset: 2px; }
+.carte-boite.active { touch-action: none; cursor: grab; }
+.carte-zoom { position: absolute; top: 8px; right: 8px; z-index: 2; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.carte-zoom button {
+  min-width: 36px; min-height: 36px; padding: 0 10px; border: 1px solid var(--trait-fort); border-radius: 8px;
+  background: var(--surface-haute); color: var(--encre); font: 700 17px/1 var(--police); cursor: pointer; box-shadow: 0 1px 3px var(--ombre-forte);
+}
+.carte-zoom button:hover { border-color: var(--marque); background: var(--marque-voile); color: var(--marque-fort); }
+.carte-zoom button[data-v="recentrer"] { font-size: var(--t-micro); font-weight: 700; }
+.carte-aide {
+  position: absolute; left: 8px; bottom: 8px; z-index: 2; max-width: calc(100% - 16px); margin: 0; padding: 5px 10px;
+  border: 1px solid var(--trait-fort); border-radius: 8px; background: var(--surface-haute); font-size: 12.5px; box-shadow: 0 1px 3px var(--ombre);
+}
+.carte-bulle {
+  position: absolute; z-index: 3; max-width: 260px; padding: 8px 10px; border: 1px solid var(--trait-fort); border-radius: 8px;
+  background: var(--surface-haute); color: var(--encre); font-size: 12.5px; line-height: 1.4; pointer-events: none; box-shadow: 0 6px 18px -4px var(--ombre-forte);
+}
+.carte-reglages { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.cle { display: inline-flex; align-items: center; }
+.pastille { display: inline-block; width: 10px; height: 10px; margin-right: 5px; border: 1px solid var(--surface); border-radius: 50%; }
+.tab-mini { margin-top: 8px; border-collapse: collapse; font-size: var(--t-petit); font-variant-numeric: tabular-nums; }
+.tab-mini caption { padding-bottom: 6px; text-align: left; font-weight: 700; }
+.tab-mini th, .tab-mini td { padding: 4px 14px 4px 0; border-bottom: 1px solid var(--trait); text-align: left; font-weight: 400; }
+.tab-mini thead th { font-size: var(--t-micro); font-weight: 700; color: var(--encre-2); }
+.tab-mini td { text-align: right; }
+.carte-legende { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: var(--encre-2); }
+
+/* ---------- les graphiques : barres et points gardent leurs gris ; le syndic choisi fonce, sa ligne se teinte à peine */
+.graph { display: grid; gap: 4px; min-width: 0; }
+.graph + .graph { margin-top: 14px; padding-top: 16px; border-top: 1px solid var(--trait); }
+.graph h3 { margin-bottom: 2px; }
+.sous-titre { max-width: 90ch; margin-bottom: 6px; font-size: 12.5px; color: var(--encre-2); }
+.g-ligne {
+  display: grid; grid-template-columns: minmax(0, var(--g-nom)) minmax(0, 1fr) var(--g-val); align-items: center; gap: 8px;
+  width: 100%; padding: 3px 0; border: 0; border-radius: 4px; background: none; color: inherit; text-align: left;
+  font-size: var(--t-petit); font-variant-numeric: tabular-nums;
+}
+/* Le voile d'une ligne déborde par une ombre, pas par une marge : les graduations restent alignées sur les pistes. */
+button.g-ligne { cursor: pointer; }
+button.g-ligne:hover { background: var(--marque-voile); box-shadow: 0 0 0 3px var(--marque-voile); }
+button.g-ligne:hover .g-nom { text-decoration: underline; text-underline-offset: 2px; }
+.g-nom { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.g-fixe .g-nom { white-space: normal; }
+.g-piste { position: relative; height: 12px; background: var(--barre-fond); }
+.g-plein { position: absolute; left: 0; top: 0; bottom: 0; background: var(--barre); }
+.g-seg { position: absolute; top: 2px; bottom: 2px; min-width: 3px; background: var(--barre); }
+.g-mil { position: absolute; top: -2px; bottom: -2px; width: 2px; margin-left: -1px; background: var(--encre); }
+.g-val { text-align: right; }
+.g-ligne.choisi, button.g-ligne.choisi:hover, .g-ligne.choisi:focus-visible { background: var(--marque-doux); box-shadow: 0 0 0 3px var(--marque-doux); }
+.g-ligne.choisi .g-plein, .g-ligne.choisi .g-seg { background: var(--point-choisi); }
+.g-ligne.choisi .g-nom { font-weight: 700; }
+.g-sep { font-size: var(--t-micro); color: var(--encre-2); }
+.g-axe { position: relative; height: 1.3em; margin: 0 calc(var(--g-val) + 8px) 0 calc(var(--g-nom) + 8px); font-size: 11.5px; color: var(--encre-2); }
+.g-axe span, .bande-axe span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+.graph.g-large { --g-val: 4.6rem; }
+@container vue (max-width: 420px) { .graph { --g-nom: 7.5rem; --g-val: 2.8rem; } .graph.g-large { --g-val: 4rem; } }
+/* La forme du graphique se choisit au-dessus de lui ; la première puce est la forme proposée pour l'indicateur. */
+.formes { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 10px; }
+.formes label.trier { flex-wrap: wrap; margin-left: 6px; }
+/* En barres, la marge d'un taux devient une moustache sur le bout de la barre. */
+.g-moust { position: absolute; top: 50%; height: 2px; margin-top: -1px; background: var(--encre); box-shadow: 0 0 0 1px var(--surface); }
+.g-moust::before, .g-moust::after { content: ""; position: absolute; top: -3px; width: 2px; height: 8px; background: var(--encre); }
+.g-moust::before { left: -1px; }
+.g-moust::after { right: -1px; }
+/* Le nuage de points : des points gris, le syndic choisi foncé et nommé ; une cible de 28 unités autour de chaque point. */
+.nuage { display: block; max-width: 100%; height: auto; }
+.n-grille { stroke: var(--dessin-trait); stroke-width: 1; }
+.n-tic { font: 11px var(--police); fill: var(--encre-2); font-variant-numeric: tabular-nums; }
+.n-axe { font: 12px var(--police); fill: var(--encre-2); }
+.n-ref { stroke: var(--encre-2); stroke-width: 1.5; stroke-dasharray: 4 3; }
+.n-pt { cursor: pointer; }
+.n-cible { fill: transparent; }
+.n-point { fill: var(--barre); stroke: var(--surface); stroke-width: 1.5; }
+.n-pt:hover .n-point { fill: var(--encre-2); }
+.n-pt.choisi .n-point { fill: var(--point-choisi); }
+.n-etiq { font: 700 12px var(--police); fill: var(--encre); paint-order: stroke; stroke: var(--surface); stroke-width: 3.5px; stroke-linejoin: round; }
+.n-etiq.n-nom { font: 600 11px var(--police); fill: var(--encre-2); }
+/* Le réseau des avocats : des traits gris qui s'épaississent avec le nombre de décisions ; ceux du syndic choisi et du nœud survolé foncent. */
+.reseau { display: block; max-width: 100%; height: auto; }
+.r-lien { fill: none; stroke: var(--dessin-trait-fort); stroke-opacity: 0.6; }
+.r-lien.choisi { stroke: var(--point-choisi); stroke-opacity: 1; }
+.reseau.foyer .r-lien { stroke-opacity: 0.15; }
+.reseau.foyer .r-lien.allume { stroke: var(--encre); stroke-opacity: 0.95; }
+.r-cible { fill: transparent; }
+.r-pt { fill: var(--barre); stroke: var(--surface); stroke-width: 1.5; }
+.r-syn { cursor: pointer; }
+.r-syn:hover .r-etiq { text-decoration: underline; }
+.r-syn.choisi .r-pt { fill: var(--point-choisi); }
+.r-syn.choisi .r-etiq { font-weight: 700; }
+.r-etiq { font: 12px var(--police); fill: var(--encre); }
+.r-n { fill: var(--encre-2); font-variant-numeric: tabular-nums; }
+.r-autres .r-etiq { fill: var(--encre-2); font-style: italic; }
+/* La bande des pairs : par taille de syndic, la moitié centrale des pairs (bande), leur médiane (trait foncé), les syndics de la liste (points). */
+.g-bande-ligne .g-piste { height: 34px; }
+.g-bande { position: absolute; top: 9px; bottom: 9px; background: var(--barre); }
+.g-med { position: absolute; top: 5px; bottom: 5px; width: 3px; margin-left: -1.5px; background: var(--encre); }
+.g-bande-ligne .g-ref { top: 0; bottom: 0; width: 1px; margin-left: -0.5px; }
+.g-pt-b { position: absolute; width: 24px; height: 24px; margin: -12px 0 0 -12px; padding: 0; border: 0; border-radius: 50%; background: none; cursor: pointer; }
+.g-pt-b i { position: absolute; inset: 7px; border-radius: 50%; background: var(--encre-2); box-shadow: 0 0 0 1.5px var(--surface); }
+.g-pt-b.choisi i { inset: 5px; background: var(--point-choisi); box-shadow: 0 0 0 2px var(--surface), 0 0 0 3.5px var(--point-choisi); }
+.g-pt-b:focus-visible { outline: 2px solid var(--anneau); outline-offset: 0; }
+/* Sur un écran étroit, la taille passe au-dessus de sa piste, qui prend toute la largeur. */
+@container vue (max-width: 420px) {
+  .g-bande-ligne { grid-template-columns: minmax(0, 1fr) var(--g-val); row-gap: 2px; }
+  .g-bande-ligne .g-nom { grid-column: 1 / -1; }
+  .g-bandes .g-axe { margin-left: 0; }
+  .g-empile { grid-template-columns: minmax(0, 1fr) var(--g-val); row-gap: 2px; }
+  .g-empile .g-nom { grid-column: 1 / -1; }
+  .delais .g-axe { margin-left: 0; }
+}
+.graph-bulle { position: fixed; z-index: 20; white-space: pre-line; }
+/* L'histoire des décisions : une barre par année, empilée par rôle du syndic. */
+.h-ligne { display: grid; grid-template-columns: 3rem minmax(0, 1fr) 2.6rem; align-items: center; gap: 8px; font-size: var(--t-petit); font-variant-numeric: tabular-nums; }
+.h-piste { display: flex; height: 13px; background: var(--barre-fond); }
+.h-piste span, .h-cle i { display: block; height: 100%; }
+.h-r1 { background: var(--encre); }
+.h-r2 { background: var(--encre-2); }
+.h-r0 { background: var(--barre); }
+.h-cles { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: var(--t-micro); color: var(--encre-2); }
+.h-cle { display: inline-flex; align-items: center; gap: 5px; }
+.h-cle i { width: 11px; height: 11px; }
+.h-val { text-align: right; }
+
+/* ---------- la fiche : une carte à part, coiffée d'un filet de prune, celui de la sélection */
+.fiche {
+  display: grid; gap: 16px; min-width: 0; padding: 16px 18px 20px; border: 1px solid var(--trait); border-top: 4px solid var(--marque);
+  border-radius: var(--rayon-carte); background: var(--surface-haute); box-shadow: 0 1px 2px var(--ombre), 0 18px 40px -30px var(--ombre-forte);
+  overflow-wrap: break-word;
+}
+.retour {
+  justify-self: start; display: inline-flex; align-items: center; min-height: 32px; padding: 4px 12px;
+  border: 1px solid var(--trait-fort); border-radius: 8px; background: var(--surface-haute); color: var(--encre);
+  font-size: var(--t-petit); font-weight: 600; cursor: pointer; transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+}
+.retour:hover { border-color: var(--marque); background: var(--marque-voile); color: var(--marque-fort); }
+.fiche-tete { display: grid; gap: 6px; }
+.fiche h2 { font-size: 1.35rem; letter-spacing: -0.02em; }
+.fiche-id { font-size: 13.5px; color: var(--encre-2); }
+.bloc { display: grid; gap: 10px; padding-top: 14px; border-top: 1px solid var(--trait); }
+.bloc h3 { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; }
+.tache { padding: 0 5px; border: 1px solid var(--trait-fort); border-radius: 4px; font-family: var(--police-note); font-size: 11px; font-weight: 400; color: var(--encre-2); }
+/* Les chiffres de la fiche : de petites plaques grises, l'intitulé au-dessus, la valeur en gras. */
+.chiffres { display: grid; gap: 8px; margin: 0; grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr)); }
+.chiffres > div { display: grid; gap: 2px; align-content: start; padding: 10px 12px; border-radius: 10px; background: var(--surface-2); }
+.chiffres dt { font-size: var(--t-micro); color: var(--encre-2); }
+.chiffres dd { margin: 0; font-size: 17px; font-weight: 800; line-height: 1.25; font-variant-numeric: tabular-nums; }
+.chiffres dd.limite { padding-left: 0; border-left: 0; font-size: 12.5px; font-weight: 400; line-height: 1.45; }
+.grand { font-size: 1.3rem; font-weight: 800; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+.emplacement { padding: 10px 12px; border: 1px dashed var(--trait-fort); border-radius: var(--rayon); background: repeating-linear-gradient(135deg, transparent 0 7px, var(--hachure) 7px 8px); }
+.emplacement p, .emplacement ul { font-size: var(--t-petit); }
+.emplacement ul { margin: 0; padding-left: 1.2em; display: grid; gap: 2px; }
+.bande { display: grid; gap: 2px; }
+.bande-piste { position: relative; height: 46px; background: var(--dessin-fond); border-block: 1px solid var(--dessin-trait); }
+.bande-q { position: absolute; top: 0; bottom: 0; background: var(--barre-fond); }
+.bande-pt { position: absolute; width: 5px; height: 5px; border-radius: 50%; background: var(--pair); transform: translate(-50%, -50%); }
+.bande-f { position: absolute; top: 50%; height: 6px; min-width: 3px; transform: translateY(-50%); background: var(--point-choisi); }
+.bande-f::before, .bande-f::after { content: ""; position: absolute; top: -7px; bottom: -7px; width: 2px; background: var(--point-choisi); }
+.bande-f::before { left: 0; }
+.bande-f::after { right: 0; }
+.bande-axe { position: relative; height: 1.3em; font-size: 11.5px; color: var(--encre-2); }
+.bande-p { position: absolute; top: 50%; width: 11px; height: 11px; border-radius: 50%; background: var(--point-choisi); border: 2px solid var(--surface); transform: translate(-50%, -50%); }
+.bande-ref { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--encre-2); }
+/* Les indicateurs de la fiche : titre et valeur, la bande des pairs, la phrase de position, ce que le chiffre ne permet pas de conclure. */
+.ind { display: grid; gap: 6px; }
+.ind + .ind { margin-top: 8px; padding-top: 12px; border-top: 1px dashed var(--trait); }
+.ind-tete { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 10px; font-size: var(--t-ui); font-weight: 700; }
+.ind-val { font-weight: 800; font-variant-numeric: tabular-nums; }
+.position { font-size: var(--t-petit); font-weight: 700; }
+.histoire { display: grid; gap: 4px; }
+.titre-h { font-size: 12.5px; font-weight: 700; }
+.decisions { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; max-height: 22rem; overflow: auto; }
+.decisions li { display: grid; gap: 2px; padding: 8px 10px; border: 1px solid var(--trait); border-radius: 8px; background: var(--surface-haute); font-size: var(--t-petit); }
+.dd-tete { font-weight: 700; }
+.lien-dec { font-size: 12.5px; font-weight: 600; color: var(--marque); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+.lien-dec:hover { color: var(--marque-fort); text-decoration-thickness: 2px; }
+.schema { font-size: 11.5px; color: var(--encre-2); font-family: var(--police-note); }
+
+/* ---------- la sélection, au téléphone : une barre posée en bas, marquée du filet de la sélection */
+.sel-mobile {
+  position: sticky; bottom: max(8px, env(safe-area-inset-bottom, 0px)); z-index: 4; display: flex; align-items: center; gap: 8px;
+  padding: 8px 8px 8px 16px; border: 1px solid var(--trait-fort); border-radius: var(--rayon-carte); background: var(--surface-haute);
+  box-shadow: inset 4px 0 0 var(--marque), 0 12px 28px -10px var(--ombre-forte);
+}
+.sel-mobile > div { display: grid; flex: 1; min-width: 0; }
+.sel-mobile strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sel-mobile span { font-size: 12.5px; color: var(--encre-2); }
+.btn-x {
+  min-width: 32px; min-height: 32px; padding: 2px 9px; border: 1px solid var(--trait-fort); border-radius: 8px;
+  background: var(--surface-haute); color: var(--encre); font-size: 17px; line-height: 1; cursor: pointer;
+}
+.btn-x:hover { border-color: var(--marque); background: var(--marque-voile); color: var(--marque-fort); }
+
+/* Le tableau ne défile plus dans une boîte : il montre ses premières lignes, puis « Tout afficher ». */
+.defile { max-height: none; overflow-x: auto; overflow-y: visible; }
+.plus { margin-top: 2px; }
+/* « Ensemble » : un fond creusé, des cartes blanches posées dessus, des tuiles qui ouvrent ce qu'elles comptent */
+#ens-corps { background: var(--surface-creuse); border-radius: 0 0 calc(var(--rayon-carte) - 1px) calc(var(--rayon-carte) - 1px); }
+.ens-bloc { display: grid; gap: 12px; min-width: 0; }
+.ens-bloc + .ens-bloc { margin-top: 10px; padding-top: 18px; border-top: 1px solid var(--trait); }
+.ens-bloc > h3 { font-size: 17px; font-weight: 800; letter-spacing: -0.015em; }
+.ens-grille { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); }
+@container vue (min-width: 820px) { .ens-grille { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.carte-g {
+  display: grid; gap: 6px; align-content: start; min-width: 0; padding: 14px 16px 16px;
+  border: 1px solid var(--trait); border-radius: var(--rayon-carte); background: var(--surface-haute); box-shadow: 0 1px 2px var(--ombre);
+}
+.carte-g h4 { margin: 0; font-size: 14.5px; font-weight: 700; line-height: 1.3; }
+.g-clic { cursor: pointer; border-radius: 4px; }
+.g-clic:hover, .g-clic:focus-visible { background: var(--marque-voile); box-shadow: 0 0 0 3px var(--marque-voile); }
+.g-clic:hover .g-nom, .g-clic:focus-visible .g-nom { text-decoration: underline; text-underline-offset: 2px; }
+.tuiles { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr)); }
+.tuile {
+  display: grid; gap: 4px; align-content: start; padding: 12px 14px; border: 1px solid var(--trait-fort); border-radius: 10px;
+  text-align: left; background: var(--surface-haute); color: var(--encre); cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+.tuile:hover { border-color: var(--marque); background: var(--marque-voile); }
+.tuile strong { font-size: 1.45rem; font-weight: 800; line-height: 1.15; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.tuile span { font-size: 12.5px; color: var(--encre-2); }
+.matrice { width: 100%; border-collapse: collapse; font-size: var(--t-petit); font-variant-numeric: tabular-nums; }
+.matrice th, .matrice td { padding: 5px 8px; border-bottom: 1px solid var(--trait); text-align: left; vertical-align: middle; }
+.matrice thead th { font-weight: 700; font-size: var(--t-micro); color: var(--encre-2); vertical-align: bottom; border-bottom-color: var(--trait-fort); }
+.matrice tbody th { font-weight: 400; }
+.matrice td button {
+  display: grid; gap: 2px; width: 100%; min-height: 28px; padding: 3px 5px; border: 0; border-radius: 6px;
+  background: none; color: inherit; text-align: left; cursor: pointer; font: inherit;
+}
+.matrice td button:hover, .matrice td button:focus-visible { background: var(--marque-doux); text-decoration: underline; }
+.matrice tr.choisi > * { background: var(--marque-doux); }
+.matrice tr.choisi th { box-shadow: inset 4px 0 0 var(--marque); }
+.matrice .c { text-align: center; }
+.niv { display: block; height: 5px; background: var(--barre-fond); }
+.niv i { display: block; height: 100%; background: var(--barre); }
+.defile-x { overflow-x: auto; }
+.lien.plus, .lien.petit { font-size: var(--t-petit); }
+/* ---------- le pied de page : la méthode, les sources, les limites, l'avertissement, les données personnelles, les avis,
+   les mentions légales ; deux colonnes dès que la page est large */
+.pied { display: grid; gap: 20px 32px; margin-top: 8px; padding: 20px 20px 22px; border-radius: var(--rayon-carte); background: var(--surface-creuse); font-size: 13.5px; }
+@container app (min-width: 900px) { .pied { grid-template-columns: 1fr 1fr; } .pied-bloc.large { grid-column: 1 / -1; } .methode-corps { grid-template-columns: 1fr 1fr; } }
+.pied-bloc { display: grid; gap: 8px; align-content: start; min-width: 0; max-width: 78ch; }
+.pied-bloc.large { max-width: none; }
+.pied-bloc:focus { outline: none; }
+.pied h2 { font-size: var(--t-titre-3); }
+.methode-corps { display: grid; gap: 14px 32px; }
+.m-bloc { display: grid; gap: 4px; align-content: start; min-width: 0; }
+.m-bloc h3 { font-size: var(--t-ui); }
+.pied ul { margin: 0; padding-left: 1.2em; display: grid; gap: 4px; }
+.pied dl { margin: 0; display: grid; gap: 6px; }
+.pied dt { font-weight: 700; }
+.pied dd { margin: 0; color: var(--encre-2); }
+.pied a { color: var(--marque); font-weight: 600; text-decoration-thickness: 1px; text-underline-offset: 3px; overflow-wrap: anywhere; }
+.pied a:hover { color: var(--marque-fort); text-decoration-thickness: 2px; }
+.pied-note { color: var(--encre-2); font-size: 12.5px; }
+
+/* ---------- sur un écran large, le bandeau colle en entier : il reste compact */
+@container app (min-width: 760px) {
+  .bandeau { gap: 8px; padding-bottom: 8px; }
+  .bande-recherche { padding: 12px 16px; }
+  .bande-recherche label.titre-champ { line-height: 1.3; }
+  .bande-recherche input[type="text"], .bande-recherche .btn-filtres { min-height: 44px; }
+  .onglets button { min-height: 36px; }
+}
+/* ---------- au téléphone : 44 px pour les commandes principales ; des champs à 16 px, que le navigateur n'agrandit pas au toucher */
+@container app (max-width: 759px) {
+  .barre-fine select, .trier select { min-height: 44px; font-size: var(--t-champ); }
+}
+@container app (max-width: 420px) {
+  .app-dedans { padding: 12px; }
+  .bande-recherche { padding: 12px; }
+  .onglets button { min-height: 44px; padding: 6px 4px; font-size: 13.5px; }
+  .btn-filtres, .retour, .btn-plein, .btn-fiche { min-height: 44px; }
+  .jauge input[type="range"] { height: 44px; }
+  .carte-zoom button, .btn-x { min-width: 44px; min-height: 44px; }
+  .chip button { min-width: 32px; min-height: 32px; }
+  .vue-tete { padding: 12px 12px 10px; }
+  .vue-corps { padding: 12px; }
+  .fiche { padding: 14px 14px 18px; }
+  .pied { padding: 16px 14px 18px; }
+}
+/* ---------- en couleurs forcées, les états gardent une forme : un contour, un filet */
+@media (forced-colors: active) {
+  .onglets button[aria-selected="true"], .puce[aria-pressed="true"], .seg input:checked + span, .tab th button.aide-col[aria-expanded="true"] { outline: 2px solid; outline-offset: -4px; }
+  .tab tbody tr.choisi td:first-child, .matrice tr.choisi th { border-left: 4px solid; }
+}
+/* les fonds de carte de l'IGN : des images sous les contours, calées sur la vue. En thème sombre, le plan et le cadastre
+   s'inversent (la rotation de 180° rend leurs teintes) et les photographies s'assombrissent : les marques de la carte
+   gardent les couleurs du thème. */
+.carte-boite { --filtre-clair: none; --filtre-photo: none; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .carte-boite { --filtre-clair: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9); --filtre-photo: brightness(0.7); } }
+:root[data-theme="dark"] .carte-boite { --filtre-clair: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9); --filtre-photo: brightness(0.7); }
+.carte-fond { position: absolute; left: 0; top: 0; max-width: none; pointer-events: none; user-select: none; }
+.carte-fond.clair { filter: var(--filtre-clair); }
+.carte-fond.photo { filter: var(--filtre-photo); }
+.carte-boite.avec-fond .contour { stroke: var(--encre); stroke-width: 1; }
+</style>
+</head>
+<body>
+
+<div class="cadre" id="cadre">
+  <div class="app" id="app">
+    <div class="soutien" id="soutien" role="region" aria-label="Soutien et avis">
+      <p class="soutien-texte"><span class="long"><strong>SyndicoScope est gratuit</strong>, sans publicité ni inscription. S'il vous est utile, vous pouvez me soutenir.</span><span class="court"><strong>Projet gratuit</strong></span></p>
+      <div class="soutien-actions">
+        <a class="soutien-btn soutien-cafe" id="soutien-lien" href="https://www.buymeacoffee.com/bthollet" target="_blank" rel="noopener noreferrer"><svg class="tasse" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path class="t-corps" d="M2.5 5.5h9v4a3.5 3.5 0 0 1-3.5 3.5h-2a3.5 3.5 0 0 1-3.5-3.5z"/><path class="t-trait" d="M11.5 6.8h.9a1.6 1.6 0 0 1 0 3.2h-.9M5.6 1.6v2.2M8.4 1.2v2.6"/></svg><span class="long">Offrir un café</span><span class="court">Un café</span><span class="vh"> (Buy Me a Coffee, nouvel onglet)</span></a>
+        <button type="button" class="soutien-btn" id="btn-avis" data-act="avis" aria-expanded="false" aria-controls="avis"><span class="long">Donner mon avis</span><span class="court">Mon avis</span></button>
+      </div>
+    </div>
+    <div class="avis" id="avis" hidden>
+      <div class="avis-github">
+        <p><strong>Donner mon avis.</strong> Les avis passent pour l'instant par GitHub, le site qui héberge SyndicoScope. Il y faut un compte, gratuit ; un formulaire sans compte est en préparation.</p>
+        <ul>
+          <li><a href="https://github.com/bthollet/SyndicoScope/issues/new?template=bogue.yml" target="_blank" rel="noopener noreferrer">Signaler un bogue</a> : la page ne marche pas comme prévu.</li>
+          <li><a href="https://github.com/bthollet/SyndicoScope/issues/new?template=erreur-de-donnees.yml" target="_blank" rel="noopener noreferrer">Signaler une erreur de données</a> : un chiffre, un nom ou un lieu vous paraît faux.</li>
+          <li><a href="https://github.com/bthollet/SyndicoScope/issues/new?template=idee.yml" target="_blank" rel="noopener noreferrer">Proposer une idée</a> : une fonction qui vous aiderait à choisir ou à suivre un syndic.</li>
+        </ul>
+        <p class="avis-note">Votre message devient un ticket public dès son envoi : n'y écrivez ni votre nom, ni votre adresse, ni le numéro d'immatriculation de votre copropriété.</p>
+      </div>
+    </div>
+    <div class="app-dedans">
+      <header class="tete">
+        <div class="tete-ligne"><span class="marque">SyndicoScope</span><span class="dept" id="dept"></span><span class="dates" id="dates"></span></div>
+      </header>
+      <p class="erreur" id="erreur" hidden></p>
+      <noscript><p class="erreur">SyndicoScope a besoin de JavaScript pour afficher ses tableaux, ses graphiques et sa carte. Activez-le dans votre navigateur, puis rechargez la page.</p></noscript>
+
+      <div class="bandeau" id="bandeau">
+        <h1 class="vh" id="e-titre">Trouver des syndics pour votre copropriété</h1>
+        <div class="bande-recherche" id="entree">
+          <div class="champ">
+            <label class="titre-champ" for="lieu">Où chercher</label>
+            <div class="champ-lieu">
+              <input id="lieu" type="text" enterkeyhint="search" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="lieu-liste" aria-describedby="lieu-aide" autocomplete="off" spellcheck="false" placeholder="Commune, département…">
+              <ul id="lieu-liste" role="listbox" aria-label="Lieux" hidden></ul>
+            </div>
+          </div>
+          <div class="champ">
+            <label class="titre-champ" for="copro">Votre copropriété <span class="facultatif">(facultatif)</span></label>
+            <div class="champ-lieu champ-copro">
+              <input id="copro" type="text" enterkeyhint="search" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="copro-liste" aria-describedby="lieu-aide" autocomplete="off" spellcheck="false" placeholder="Immatriculation ou adresse">
+              <ul id="copro-liste" role="listbox" aria-label="Votre copropriété" hidden></ul>
+            </div>
+          </div>
+          <div class="champ jauge">
+            <label class="titre-champ" for="taille">Taille de votre copropriété<output id="taille-val" for="taille">toutes tailles</output></label>
+            <input id="taille" type="range" min="0" max="8" step="1" value="0" aria-valuetext="toutes tailles" aria-describedby="taille-aide">
+            <div class="jauge-reperes" id="taille-reperes" aria-hidden="true"></div>
+          </div>
+          <button type="button" class="btn-filtres" id="btn-filtres" data-act="filtres" aria-expanded="false" aria-controls="filtres">Filtres</button>
+        </div>
+        <div class="lieux-choisis" id="lieux-choisis" role="group" aria-label="Lieux choisis"></div>
+        <div class="filtres" id="filtres" hidden>
+          <label class="trier" for="rayon">Cercle autour du lieu <select id="rayon"></select></label>
+          <label class="trier" for="constr">Construction <select id="constr"></select></label>
+          <button type="button" class="lien" id="dept-tout" aria-pressed="false">Tout le département</button>
+          <div class="periode" id="periode" role="group" aria-labelledby="periode-titre" aria-describedby="periode-note">
+            <span class="titre-champ" id="periode-titre">Période du devenir<output id="periode-val"></output></span>
+            <div class="reglette">
+              <div class="reglette-piste" id="reglette-piste" aria-hidden="true"></div>
+              <input type="range" id="periode-debut" min="0" max="1" step="1" value="0" aria-label="Début : le trimestre où l'on regarde qui gère la copropriété">
+              <input type="range" id="periode-fin" min="0" max="1" step="1" value="1" aria-label="Fin : le trimestre où l'on regarde si elle l'est toujours">
+            </div>
+            <div class="reglette-reperes" id="reglette-reperes" aria-hidden="true"></div>
+            <p class="note-periode" id="periode-note" aria-live="polite"></p>
+          </div>
+        </div>
+        <p class="note-bandeau" id="lieu-aide">Tapez une commune, un arrondissement ou un département ; plusieurs lieux d'un même département s'ajoutent les uns aux autres. La page charge alors ce département ; elle demande à l'IGN les contours de ses communes quand vous ouvrez la carte, et un fond de carte ou les parcelles si vous les choisissez. L'adresse et la taille de votre copropriété restent sur votre écran ; de son numéro, seuls les trois premiers caractères partent, s'il faut chercher son département.</p>
+        <p class="vh" id="taille-aide">Huit tranches, de 2 à 5 lots jusqu'à 500 lots et plus ; tout à gauche, toutes les tailles.</p>
+        <div class="etiquettes" id="etiquettes" aria-label="Filtres posés"></div>
+        <div class="onglets" id="onglets" role="tablist" aria-label="Vues">
+          <button type="button" role="tab" id="og-tableau" data-vue="tableau" aria-controls="vue-tableau">Tableau</button>
+          <button type="button" role="tab" id="og-carte" data-vue="carte" aria-controls="vue-carte">Carte</button>
+          <button type="button" role="tab" id="og-graphiques" data-vue="graphiques" aria-controls="vue-graphiques">Graphiques</button>
+          <button type="button" role="tab" id="og-ensemble" data-vue="ensemble" aria-controls="vue-ensemble">Ensemble</button>
+        </div>
+      </div>
+      <script>document.documentElement.classList.add("amorce");</script>
+      <p class="note-bandeau note-national" id="note-national" role="status" hidden></p>
+      <section class="amorce-accueil" id="amorce" aria-labelledby="amorce-titre">
+        <h2 id="amorce-titre">Les syndics de toute la France</h2>
+        <p id="amorce-note" role="status">Chargement de la liste des communes…</p>
+      </section>
+
+      <section class="resultat" id="resultat" aria-label="Syndics">
+        <div class="criteres" id="criteres" hidden></div>
+        <p class="resume" id="resume" aria-live="polite" tabindex="-1"></p>
+        <div class="vues" id="vues">
+          <section class="vue" id="vue-tableau" role="tabpanel" aria-labelledby="h-tableau">
+            <div class="vue-tete">
+              <h2 id="h-tableau">Tableau</h2>
+              <label class="trier" for="tri-choix">Trier par <select id="tri-choix"></select></label>
+            </div>
+            <div class="vue-corps">
+              <div class="groupes-col" id="modes-tab" role="group" aria-label="Lignes du tableau" hidden></div>
+              <div class="groupes-col" id="groupes-col" role="group" aria-label="Colonnes du tableau" hidden></div>
+              <div class="choix-col" id="choix-col" role="region" aria-label="Choix et ordre des colonnes" hidden></div>
+              <p class="bulle" id="tab-bulle" aria-live="polite" hidden></p>
+              <p class="legende" id="tab-legende"></p>
+              <div class="defile" id="tab-defile">
+                <table class="tab"><thead id="tab-tete"></thead><tbody id="tab-corps"></tbody></table>
+                <p class="vide" id="tab-vide" hidden></p>
+              </div>
+              <div id="tab-plus"></div>
+              <p class="limite" id="tab-limite">La liste dit qui gère déjà des copropriétés comme la vôtre ici. Elle ne dit rien de la qualité de cette gestion, ni de ses prix.</p>
+              <details class="defs" id="tab-defs" hidden><summary>Ce que disent les colonnes</summary><dl id="tab-defs-liste"></dl></details>
+            </div>
+          </section>
+          <section class="vue" id="vue-carte" role="tabpanel" aria-labelledby="h-carte">
+            <div class="vue-tete">
+              <h2 id="h-carte">Carte des syndics</h2>
+              <div class="carte-actions" id="carte-actions"></div>
+            </div>
+            <div class="vue-corps">
+              <div class="carte-reglages" id="carte-reglages" role="group" aria-label="Ce que montre la carte" hidden></div>
+              <div class="carte-boite" id="carte-boite" tabindex="0" role="application" aria-roledescription="carte" aria-label="Carte du département. Flèches pour déplacer la carte, plus et moins pour zoomer, zéro pour recentrer." aria-describedby="carte-legende">
+                <img class="carte-fond" id="carte-fond" alt="" aria-hidden="true" hidden>
+                <img class="carte-fond" id="carte-parcelles" alt="" aria-hidden="true" hidden>
+                <canvas id="carte-points" aria-hidden="true"></canvas>
+                <svg id="carte-svg" aria-hidden="true"></svg>
+                <div class="carte-zoom" id="carte-zoom" role="group" aria-label="Zoom de la carte">
+                  <button type="button" data-act="zoom" data-v="plus" aria-label="Zoomer">+</button>
+                  <button type="button" data-act="zoom" data-v="moins" aria-label="Dézoomer">−</button>
+                  <button type="button" data-act="zoom" data-v="recentrer">Recentrer</button>
+                </div>
+                <p class="carte-aide" id="carte-aide" aria-live="polite" hidden></p>
+                <div class="carte-bulle" id="carte-bulle" hidden></div>
+              </div>
+              <p class="carte-legende" id="carte-legende"></p>
+              <details class="defs" id="carte-tab" hidden><summary>Les copropriétés de la carte, en tableau</summary><div id="carte-tab-corps"></div></details>
+            </div>
+          </section>
+          <section class="vue" id="vue-graphiques" role="tabpanel" aria-labelledby="h-graphiques">
+            <div class="vue-tete">
+              <h2 id="h-graphiques">Graphiques, syndic par syndic</h2>
+              <label class="trier" for="tri-choix-g">Trier par <select id="tri-choix-g"></select></label>
+            </div>
+            <div class="vue-corps" id="graph-corps"></div>
+            <div class="carte-bulle graph-bulle" id="graph-bulle" hidden></div>
+          </section>
+          <section class="vue" id="vue-ensemble" role="tabpanel" aria-labelledby="h-ensemble">
+            <div class="vue-tete">
+              <h2 id="h-ensemble">Ensemble, sans nom</h2>
+            </div>
+            <div class="vue-corps" id="ens-corps"></div>
+          </section>
+          <aside class="fiche" id="fiche" aria-labelledby="fiche-nom" hidden></aside>
+        </div>
+        <div class="sel-mobile" id="sel-mobile" hidden></div>
+      </section>
+      <footer class="pied" id="pied">
+        <section class="pied-bloc large" id="methode" aria-labelledby="methode-titre" tabindex="-1">
+          <h2 id="methode-titre">Méthode</h2>
+          <div class="methode-corps" id="methode-corps"></div>
+        </section>
+        <section class="pied-bloc" aria-labelledby="pied-sources">
+          <h2 id="pied-sources">Sources et licences</h2>
+          <ul id="liste-sources"></ul>
+        </section>
+        <section class="pied-bloc" aria-labelledby="pied-limites">
+          <h2 id="pied-limites">Ce que ces chiffres ne disent pas</h2>
+          <ul id="liste-limites"></ul>
+        </section>
+        <section class="pied-bloc" aria-labelledby="pied-avertissement">
+          <h2 id="pied-avertissement">Avertissement</h2>
+          <p>SyndicoScope est un outil indépendant. Il n'a de lien ni avec l'Agence nationale de l'habitat, ni avec l'État, ni avec un syndic. Il ne note ni ne classe aucun syndic. Les chiffres reprennent des déclarations publiques, à leur date ; ils peuvent contenir des erreurs ou des déclarations tardives. Avant toute décision, vérifiez auprès du syndic concerné et dans les documents de votre copropriété.</p>
+        </section>
+        <section class="pied-bloc" aria-labelledby="pied-donnees">
+          <h2 id="pied-donnees">Données personnelles</h2>
+          <p>Aucun dirigeant n'est nommé, ni aucun syndic bénévole ou copropriétaire, et un syndic en entreprise individuelle ne l'est jamais. Aucune adresse n'est écrite. La page demande à son propre site le fichier du département que vous choisissez ; pour un numéro de copropriété qui n'y est pas, la partie de l'index des numéros qui porte ses trois premiers caractères. Ce site reçoit donc votre adresse IP, le département et ces trois caractères. Quand vous ouvrez la carte, votre navigateur demande au serveur de l'IGN (data.geopf.fr) les contours des communes du département : l'IGN reçoit votre adresse IP et le code du département. Si vous choisissez un fond de carte ou les parcelles du cadastre, il reçoit aussi les coordonnées de la zone affichée : si la carte est centrée sur votre copropriété, il peut en déduire à peu près où elle se trouve. Le reste de ce que vous tapez, la taille de votre copropriété et vos filtres restent dans votre navigateur : la page ne les envoie nulle part, et son lien ne porte que le code du département. La page ne dépose aucun cookie ; elle garde seulement, dans votre navigateur, les colonnes que vous choisissez et, le temps de changer de département, le lieu ou le numéro choisi.</p>
+        </section>
+        <section class="pied-bloc" aria-labelledby="pied-retours">
+          <h2 id="pied-retours">Signaler un problème, proposer une idée</h2>
+          <p>Un chiffre vous paraît faux, la page ne marche pas comme prévu, une fonction vous manque : dites-le avec « Donner mon avis », en haut de la page. La plupart des chiffres viennent des déclarations au registre des copropriétés : une correction faite à la source, par le syndic, est reprise au calcul suivant.</p>
+          <p class="pied-note" id="pied-version"></p>
+        </section>
+        <section class="pied-bloc" id="mentions-legales" aria-labelledby="pied-mentions">
+          <h2 id="pied-mentions">Mentions légales</h2>
+          <p>Éditeur : une personne physique agissant à titre non professionnel, qui garde l'anonymat comme le permet l'article 1-1, II, de la loi n° 2004-575 du 21 juin 2004 pour la confiance dans l'économie numérique.</p>
+          <p>Hébergeur : GitHub, Inc., 88 Colin P. Kelly Jr. St., San Francisco, CA 94107, États-Unis.</p>
+          <p>Droit de réponse : toute personne nommée ou désignée sur ce site peut exercer un droit de réponse (même article, III). La demande est adressée à l'hébergeur, qui la transmet à l'éditeur. Pour signaler une erreur ou demander une correction, utilisez aussi « Donner mon avis », en haut de cette page.</p>
+          <p>Services tiers : la page n'en appelle qu'un, le serveur de l'IGN : pour les contours des communes, quand vous ouvrez la carte ; pour un fond de carte ou les parcelles du cadastre, si vous les choisissez. Ses données et son code viennent de son propre site. Les liens vers Buy Me a Coffee, GitHub et le site de la Cour de cassation ne s'ouvrent que si vous les suivez. Comme tout site, l'hébergeur reçoit l'adresse IP de votre navigateur.</p>
+        </section>
+      </footer>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// L'amorce de la page nationale : elle lit le manifeste et l'index des communes, propose les lieux de toute la France, puis charge
+// le département choisi et le code de la page, qui prend la suite. Le lieu ou le numéro choisi passe au code de la page en mémoire ;
+// d'un département à l'autre, par le stockage local du navigateur, effacé dès sa relecture.
+(function () {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const CLE_RELAIS = "syndicoscope.relais", RE_NUM = /^[A-Z]{2}\d{7}$/;
+  const norm = (s) => String(s).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[-'’]/g, " ").replace(/\s+/g, " ").trim();
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+  const nb = (n) => new Intl.NumberFormat("fr-FR").format(n);
+  const dire = (t) => { $("amorce-note").textContent = t; };
+  const json = (url) => fetch(url).then((r) => { if (!r.ok) throw new Error(url + " : réponse " + r.status); return r.json(); });
+  let relais = null;
+  try { relais = JSON.parse(localStorage.getItem(CLE_RELAIS) || "null"); localStorage.removeItem(CLE_RELAIS); } catch (e) { relais = null; }
+  // les écoutes de l'accueil se retirent quand le code de la page prend la suite
+  const ecoutes = [];
+  const ecouter = (el, type, fn) => { el.addEventListener(type, fn); ecoutes.push([el, type, fn]); };
+
+  function charger(dep, a) {
+    for (const [el, type, fn] of ecoutes) el.removeEventListener(type, fn);
+    const MN = window.SYNDICO_MANIFESTE, f = MN.deps[dep];
+    $("lieu-liste").hidden = true;
+    dire(`Chargement : ${f.nom} (${dep}), ${nb(f.copros)} copropriétés au registre…`);
+    if (decodeURIComponent(location.hash.slice(1)) !== dep) history.replaceState(null, "", "#" + dep);
+    json(f.f).then((D) => {
+      window.SYNDICO_D = D;
+      window.SYNDICO_AMORCE = a;
+      // la page se montre avant que son code ne la remplisse, pour qu'il en mesure les vues
+      document.documentElement.classList.remove("amorce");
+      $("amorce").hidden = true;
+      const s = document.createElement("script");
+      s.src = MN.app;
+      s.onerror = () => { document.documentElement.classList.add("amorce"); $("amorce").hidden = false; dire("La page n'a pas pu charger son code. Rechargez-la."); };
+      document.body.appendChild(s);
+    }).catch((e) => dire(`Le département n'a pas pu être chargé (${e.message}). Rechargez la page.`));
+  }
+
+  function accueil(MN, X) {
+    const F = MN.france, deDep = (c) => MN.deps[c].nom + " (" + c + ")";
+    dire(`${nb(F.copros)} copropriétés au registre, dans ${nb(Object.keys(MN.deps).length)} départements. Tapez une commune, un département ou le numéro de votre copropriété : la page charge son département.`);
+    // les départements d'abord, puis les communes et les arrondissements ; un code de département tapé seul vient en tête, puis le
+    // nom exact (Toulon avant Toulon-sur-Allier)
+    const lieux = Object.keys(MN.deps).map((c) => ({ lib: deDep(c), sous: "département · " + nb(MN.deps[c].copros) + " copropriétés", dep: c, code: c }))
+      .concat(X.code.map((code, j) => ({ dep: X.dep[j], code, lib: X.decoupee[j] ? X.nom[j] + ", toute la commune" : X.nom[j].replace(/ Arrondissement$/, ""), type: X.decoupee[j] ? "ses arrondissements" : X.type[j] === "a" ? "arrondissement" : "commune" }))
+        .filter((l) => MN.deps[l.dep]).map((l) => Object.assign(l, { sous: l.type + " · " + deDep(l.dep) })));
+    lieux.forEach((l) => { l.cle = norm(l.lib); });
+    const inp = $("lieu"), ul = $("lieu-liste");
+    let items = [];
+    const fermer = () => { ul.hidden = true; inp.setAttribute("aria-expanded", "false"); };
+    const maj = () => {
+      const n = norm(inp.value), code = inp.value.trim().toUpperCase();
+      items = [];
+      if (!n) return fermer();
+      const rangs = [[], [], [], [], []];
+      for (const l of lieux) {
+        const r = MN.deps[code] && l.code === code ? 0 : l.cle === n ? 1 : l.cle.startsWith(n) ? 2 : l.cle.includes(" " + n) ? 3 : l.cle.includes(n) ? 4 : -1;
+        if (r >= 0) rangs[r].push(l);
+      }
+      items = [].concat(...rangs).slice(0, 8);
+      ul.innerHTML = items.length ? items.map((l, k) => `<li role="option" id="lieu-liste-${k}" data-k="${k}"><span>${esc(l.lib)}</span><small>${esc(l.sous)}</small></li>`).join("")
+        : `<li role="option" aria-disabled="true" class="inactif"><span>Aucun lieu de ce nom</span><small>parmi les communes, les arrondissements et les départements</small></li>`;
+      ul.hidden = false;
+      inp.setAttribute("aria-expanded", "true");
+    };
+    const prendre = (k) => { const l = items[k]; if (l) charger(l.dep, { dep: l.dep, lieu: l.code }); };
+    ecouter(inp, "input", maj);
+    ecouter(inp, "keydown", (ev) => { if (ev.key === "Enter") { ev.preventDefault(); maj(); prendre(0); } else if (ev.key === "Escape") fermer(); });
+    ecouter(ul, "mousedown", (ev) => { const li = ev.target.closest("li[data-k]"); if (li) { ev.preventDefault(); prendre(Number(li.dataset.k)); } });
+    ecouter(inp, "blur", () => setTimeout(fermer, 150));
+    // le numéro d'une copropriété : le fragment de l'index qui porte ses trois premiers caractères dit son département
+    const cp = $("copro");
+    ecouter(cp, "keydown", (ev) => {
+      if (ev.key !== "Enter") return;
+      ev.preventDefault();
+      const num = cp.value.toUpperCase().replace(/[\s.\-]/g, ""), f = MN.immat.fragments[num.slice(0, 3)];
+      if (!RE_NUM.test(num)) return dire("Un numéro d'immatriculation compte deux lettres et sept chiffres. Pour une adresse, tapez d'abord sa commune dans « Où chercher ».");
+      if (!f) return dire(`Le numéro ${num} n'est au registre d'aucun département.`);
+      dire(`Recherche du numéro ${num}…`);
+      json(MN.immat.modele.replace("{prefixe}", num.slice(0, 3)).replace("{empreinte}", f)).then((x) => {
+        const dep = Object.keys(x.d).find((c) => x.d[c].includes(Number(num.slice(3))));
+        if (dep && MN.deps[dep]) charger(dep, { dep, copro: num });
+        else dire(`Le numéro ${num} n'est au registre d'aucun département.`);
+      }).catch(() => dire("L'index des numéros n'a pas pu être lu. Réessayez dans un instant."));
+    });
+  }
+
+  json("manifeste.json").then((MN) => {
+    window.SYNDICO_MANIFESTE = MN;
+    return json(MN.communes).then((X) => {
+      window.SYNDICO_COMMUNES = X;
+      const dep = decodeURIComponent(location.hash.slice(1));
+      if (MN.deps[dep]) charger(dep, relais && relais.dep === dep ? relais : null);
+      else accueil(MN, X);
+    });
+  }).catch((e) => dire(`La page n'a pas pu lire ses données (${e.message}). Rechargez-la.`));
+})();
+</script>
+</body>
+</html>

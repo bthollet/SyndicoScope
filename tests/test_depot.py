@@ -21,6 +21,10 @@ import verifier_secrets   # noqa: E402
 # complémentaires intégrés, assemblée sur le poste ; même exception, jusqu'au déploiement par le flux.
 EXCEPTIONS = {"docs/jurisprudence/index.html", "docs/jurisprudence/donnees/decisions_releve.csv",
               "docs/jurisprudence/donnees/correspondance_syndics.csv", "docs/index.html"}
+# Page nationale, première étape, sous docs/national/ (décision de Brice, 29/10/2026, 22 h 33, « Go github », et
+# 22 h 36, « Pousse même >1mo ») : la coquille, le code de la page, un fichier par département et les deux index,
+# assemblés sur le poste ; même exception, jusqu'au déploiement par le flux.
+EXCEPTIONS_DOSSIERS = ("docs/national/",)
 EXTENSIONS_DONNEES = (".csv", ".tsv", ".parquet", ".zip", ".gz", ".7z", ".sqlite", ".db")
 
 
@@ -33,7 +37,7 @@ class Depot(unittest.TestCase):
     def test_aucune_donnee_suivie(self):
         fautifs = []
         for p in self.suivis():
-            if p in EXCEPTIONS:
+            if p in EXCEPTIONS or p.startswith(EXCEPTIONS_DOSSIERS):
                 continue
             if p.split("/")[0] in ("build", "data") or p.lower().endswith(EXTENSIONS_DONNEES):
                 fautifs.append(p)
