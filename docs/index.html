@@ -2086,7 +2086,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
     const ident = x.ei ? "Entrepreneur individuel : nom, SIREN et adresse masqués." : [x.f, x.s ? "SIREN " + x.s.replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3") : "", x.cr ? "création : " + x.cr : ""].filter(Boolean).join(" · ");
     let h = `<button type="button" class="retour" data-act="fermer">← Retour à la liste</button>`;
     h += `<div class="fiche-tete"><h2 id="fiche-nom" tabindex="-1">${esc(x.n)}</h2><p class="fiche-id">${esc(ident)}</p>${etat.copro != null && ENT[etat.copro] === e ? `<p><span class="etiq">votre syndic déclaré</span></p>` : ""}</div>`;
-    h += `<section class="bloc"><h3>Pour votre copropriété <span class="tache">T1</span></h3><dl class="chiffres">`;
+    h += `<section class="bloc"><h3>Pour votre copropriété</h3><dl class="chiffres">`;
     h += `<div><dt>${esc(titreIci(true).replace(/ ici$/, " " + iciTxt()))}</dt><dd>${nb(r.ici)}</dd></div>`;
     if (r.part) h += `<div><dt>Part de son portefeuille dans le département</dt><dd>${partTxt(r.part[0], r.part[1])}</dd><dd class="limite">Ses copropriétés de ${libTranche(etat.tf)}, sur toutes celles qu'il gère dans le département. Ne permet pas de conclure qu'il accepte un nouveau mandat.</dd></div>`;
     let bur;
@@ -2097,7 +2097,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
     h += `<div><dt>Taille du syndic</dt><dd>${nb(TOUT_DEPT[e])} ${accord(TOUT_DEPT[e], "copropriété", "copropriétés")} dans le département (${LIB_CLASSE[classeTaille(TOUT_DEPT[e])]})${x.cn ? " · " + nb(x.cn) + " en France" : ""}${x.et ? " · " + nb(x.et) + " " + accord(x.et, "établissement", "établissements") : ""}</dd><dd class="limite">La taille n'est ni un gage ni un défaut.</dd></div>`;
     h += `</dl></section>`;
     h += blocPairs(e);
-    h += `<section class="bloc"><h3>Encadrement <span class="tache">T3</span></h3>`;
+    h += `<section class="bloc"><h3>Encadrement</h3>`;
     if (!c) h += `<p class="grand">${x.ln > 0 ? "Aucun salarié déclaré" : "Lots en France non connus"}</p><p class="source">Répertoire des entreprises, 2024.</p>`;
     else h += `<p class="grand">Entre ${lotsTxt(c.lo)} et ${lotsTxt(c.hi)} lots par salarié déclaré</p><p class="calcul">${nb(x.ln)} lots gérés en France, divisés par sa tranche d'effectif : ${esc(x.el)} (${esc(x.ea || "année non connue")}).</p>`;
     const P = pairsEnc(e);
@@ -2111,14 +2111,12 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
     h += `<p class="limite">Ne permet pas de conclure : ni le nombre de gestionnaires de copropriété, ni leur charge. L'effectif compte aussi la location, la vente et la comptabilité, et un groupe peut employer ses salariés dans une autre de ses sociétés.</p>`;
     h += `<p class="source">Lots : registre des copropriétés, toutes ses copropriétés en France, fichier du ${dateFr(M.fichier)}. Effectif : répertoire des entreprises, tranche de 2024.</p></section>`;
     h += blocJustice(e);
-    h += `<section class="bloc emplacement"><h3>Signaux publics sur la société <span class="tache">T4</span></h3><p>Emplacement, étape 4 : procédures collectives, radiations et achats de fonds publiés au BODACC, chacun daté.</p></section>`;
-    h += `<section class="bloc emplacement"><h3>Que lui demander <span class="tache">T5</span></h3><p>Emplacement, étape 4 : les questions à lui poser, chacune avec le chiffre qui la motive.</p></section>`;
     f.innerHTML = h;
   }
   // T2 : chaque indicateur du registre sur la bande de ses pairs, avec sa phrase de position.
   function blocPairs(e) {
     const { S, T } = devCourant(), tl = tlDeTf(etat.tf), c = classeTaille(TOUT_DEPT[e]);
-    let h = `<section class="bloc"><h3>Parmi ses pairs <span class="tache">T2</span></h3>`;
+    let h = `<section class="bloc"><h3>Parmi ses pairs</h3>`;
     h += `<p class="pairs">Base : ${esc(baseDev())}, et ce qu'en dit le registre au ${dateFr(M.fichier)} ; pour la tenue des fiches, ${esc(baseMaj())}.${tl >= 0 ? ` La taille retenue est la tranche large qui contient la vôtre.` : ""} Pairs : les syndics de sa taille (${esc(LIB_CLASSE[c])} dans le département), mesurés sur la même base quand elle compte au moins 10 copropriétés.</p>`;
     for (const id of ["i1", "i2", "i3", "i4", "i6"]) h += ligneInd(e, id, S, T);
     const a = S.arrV[e], n0 = S.n0[e];
@@ -2147,7 +2145,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
   }
   // T4 : les décisions de justice rendues à Marseille : J3, J1, J2 et J6, puis J5 et J4 ; l'histoire datée de ses décisions.
   function blocJustice(e) {
-    let h = `<section class="bloc"><h3>Décisions de justice à Marseille <span class="tache">T4</span></h3>`;
+    let h = `<section class="bloc"><h3>Décisions de justice à Marseille</h3>`;
     if (ENTS[e].ei) return h + `<p>Non renseigné : un entrepreneur individuel n'est rapproché d'aucune décision.</p></section>`;
     const n = BASE_MARS[e], j = JUS.get(e);
     if (!j && !n) return h + `<p>Hors du périmètre lu : il ne gère aucune copropriété à Marseille, et aucune décision du jeu ne le nomme.</p><p class="source">${esc(MENTION_J)}</p></section>`;
