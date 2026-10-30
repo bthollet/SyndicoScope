@@ -17,14 +17,12 @@ sys.path.insert(0, os.path.join(RACINE, "scripts"))
 import verifier_secrets   # noqa: E402
 # Page « Contentieux des copropriétés à Marseille », publiée telle quelle sur GitHub Pages depuis docs/ :
 # exception connue à la règle des 1 Mo et des fichiers de données, à trancher (voir docs/contrat-des-donnees.md).
-# Page du 13 à la racine du site (décision de Brice, 28/10/2026, 20 h 16) : page autonome, données et jeux
-# complémentaires intégrés, assemblée sur le poste ; même exception, jusqu'au déploiement par le flux.
 EXCEPTIONS = {"docs/jurisprudence/index.html", "docs/jurisprudence/donnees/decisions_releve.csv",
-              "docs/jurisprudence/donnees/correspondance_syndics.csv", "docs/index.html"}
-# Page nationale, première étape, sous docs/national/ (décision de Brice, 29/10/2026, 22 h 33, « Go github », et
-# 22 h 36, « Pousse même >1mo ») : la coquille, le code de la page, un fichier par département et les deux index,
-# assemblés sur le poste ; même exception, jusqu'au déploiement par le flux.
-EXCEPTIONS_DOSSIERS = ("docs/national/",)
+              "docs/jurisprudence/donnees/correspondance_syndics.csv"}
+# Page nationale à la racine du site, à la place de la page du 13 (décision de Brice, 30/10/2026, 6 h 16, « Il devait
+# remplacer le site ») : un fichier par département et l'index des communes, assemblés sur le poste, dont certains
+# dépassent 1 Mo ; même exception, jusqu'au déploiement par le flux.
+EXCEPTIONS_PREFIXES = ("docs/dep/", "docs/communes.")
 EXTENSIONS_DONNEES = (".csv", ".tsv", ".parquet", ".zip", ".gz", ".7z", ".sqlite", ".db")
 
 
@@ -37,7 +35,7 @@ class Depot(unittest.TestCase):
     def test_aucune_donnee_suivie(self):
         fautifs = []
         for p in self.suivis():
-            if p in EXCEPTIONS or p.startswith(EXCEPTIONS_DOSSIERS):
+            if p in EXCEPTIONS or p.startswith(EXCEPTIONS_PREFIXES):
                 continue
             if p.split("/")[0] in ("build", "data") or p.lower().endswith(EXTENSIONS_DONNEES):
                 fautifs.append(p)
