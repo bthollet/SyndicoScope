@@ -367,7 +367,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .note-periode { max-width: 65ch; font-size: 12.5px; color: var(--encre-2); }
 .note-bandeau { font-size: 12.5px; color: var(--encre-2); }
 /* La page nationale, avant le chargement d'un département : les deux champs et l'accueil, rien d'autre. */
-.amorce .jauge, .amorce #btn-filtres, .amorce #lieux-choisis, .amorce #etiquettes, .amorce #onglets, .amorce #resultat, .amorce #dept, .amorce #dates, .amorce #pied { display: none !important; }
+.amorce .jauge, .amorce #btn-filtres, .amorce #lieux-choisis, .amorce #etiquettes, .amorce #onglets-ligne, .amorce #resultat, .amorce #dept, .amorce #dates, .amorce #pied { display: none !important; }
 .amorce-accueil { display: grid; gap: 6px; margin: 16px 0 4px; padding: 16px 18px; border: 1px solid var(--trait); border-radius: var(--rayon-carte); background: var(--surface); }
 .amorce-accueil h2 { margin: 0; font-size: 1.15rem; text-wrap: balance; }
 .amorce-accueil p { margin: 0; max-width: 70ch; font-size: var(--t-corps); line-height: 1.5; color: var(--encre-2); }
@@ -402,6 +402,18 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
   box-shadow: 0 1px 2px var(--ombre-forte), 0 6px 14px -8px var(--ombre-forte);
 }
 .onglets button[aria-selected="true"]:hover { background: var(--marque-fort); color: var(--inverse); }
+/* « Partager », au bout des onglets : le lien de l'écran affiché. Au téléphone, son pictogramme seul. */
+.onglets-ligne { display: flex; gap: 6px; align-items: stretch; min-width: 0; }
+.onglets-ligne .onglets { flex: 1; min-width: 0; }
+.btn-partager { gap: 6px; min-height: 0; padding: 6px 12px; border-radius: var(--rayon-carte); font-size: var(--t-petit); }
+.btn-partager svg { flex: none; width: 16px; height: 16px; }
+.partage { display: grid; gap: 6px; justify-items: start; padding: 10px 12px; border: 1px solid var(--marque-trait); border-radius: var(--rayon); background: var(--marque-voile); font-size: var(--t-petit); }
+.partage p { margin: 0; max-width: 75ch; }
+.partage-lien { width: 100%; min-width: 0; padding: 6px 8px; border: 1px solid var(--trait-fort); border-radius: 6px; background: var(--champ); color: var(--encre); font: inherit; font-size: 12.5px; }
+@container app (max-width: 420px) {
+  .btn-partager { padding: 6px 10px; }
+  .btn-partager .txt { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
+}
 
 /* ---------- le résultat */
 .resultat { display: grid; gap: 14px; min-width: 0; }
@@ -440,9 +452,10 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 
 /* ---------- le tableau */
 .tab { width: 100%; border-collapse: collapse; font-size: var(--t-ui); font-variant-numeric: tabular-nums; }
+/* Des en-têtes courts et serrés : le titre entier reste dans leur infobulle, la bulle « ? », les définitions et l'étiquette des cartes. */
 .tab th {
-  position: sticky; top: 0; z-index: 1; padding: 8px 10px 7px; text-align: left; vertical-align: bottom;
-  font-size: 12.5px; font-weight: 700; color: var(--encre-2); background: var(--surface-haute); border-bottom: 1px solid var(--trait-fort);
+  position: sticky; top: 0; z-index: 1; padding: 6px 7px 5px; text-align: left; vertical-align: bottom;
+  font-size: 12px; font-weight: 700; line-height: 1.25; color: var(--encre-2); background: var(--surface-haute); border-bottom: 1px solid var(--trait-fort);
 }
 .tab th button {
   min-height: 24px; padding: 0; border: 0; background: none; color: inherit; text-align: left; font-weight: 700; cursor: pointer;
@@ -452,9 +465,27 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 /* La colonne qui trie : en prune, soulignée d'un trait plein, et sa flèche. */
 .tab th[aria-sort] { color: var(--marque); }
 .tab th[aria-sort] button { text-decoration: underline; text-decoration-thickness: 2px; }
-.tab th[aria-sort="descending"]::after { content: " ↓"; }
-.tab th[aria-sort="ascending"]::after { content: " ↑"; }
-.tab td { padding: 9px 10px; vertical-align: top; border-bottom: 1px solid var(--trait); }
+.tab th[aria-sort] button[data-tri]::after { display: inline-block; margin-left: 3px; text-decoration: none; }
+.tab th[aria-sort="descending"] button[data-tri]::after { content: "↓"; }
+.tab th[aria-sort="ascending"] button[data-tri]::after { content: "↑"; }
+/* Sous le titre, une seule ligne : le « ? » et, pour un taux, son échelle. Une largeur qui tient la plupart des titres sur deux lignes. */
+.tab th .th-pied { display: flex; align-items: center; gap: 6px; margin-top: 2px; }
+.tab th .th-pied > button.aide-col { flex: none; margin-left: 0; }
+.tab th.mobile { width: 8em; }
+/* Un en-tête mobile se glisse à la souris ou au stylet ; le trait prune dit où il tombera. */
+.tab th.mobile { cursor: grab; user-select: none; -webkit-user-select: none; }
+.tab th.glisse { opacity: 0.45; }
+.tab.en-glisse, .tab.en-glisse th, .tab.en-glisse th button { cursor: grabbing; }
+.col-repere { position: absolute; top: 0; z-index: 3; width: 3px; margin-left: -1.5px; border-radius: 2px; background: var(--marque); pointer-events: none; }
+/* Le « + » au bout des en-têtes ouvre le choix des colonnes. */
+.tab th.th-plus { width: 1%; padding-right: 4px; text-align: right; vertical-align: middle; }
+.tab th button.col-plus {
+  min-width: 28px; min-height: 28px; padding: 0 8px; border: 1px solid var(--trait-fort); border-radius: var(--rayon-pilule);
+  background: var(--surface-haute); color: var(--encre); font-size: 17px; font-weight: 700; line-height: 1; text-decoration: none; text-align: center;
+}
+.tab th button.col-plus:hover { border-color: var(--marque); color: var(--marque); }
+.tab th button.col-plus[aria-expanded="true"] { background: var(--marque); color: var(--inverse); border-color: var(--marque); }
+.tab td { padding: 6px 7px; vertical-align: top; border-bottom: 1px solid var(--trait); }
 .tab tbody tr { cursor: pointer; }
 .tab tbody tr:hover td { background: var(--marque-voile); }
 .tab tbody tr.choisi td { background: var(--marque-doux); }
@@ -483,8 +514,10 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 }
 .btn-fiche::after { content: ""; flex: none; width: 6px; height: 6px; border: solid currentColor; border-width: 2px 2px 0 0; transform: rotate(45deg); }
 .btn-fiche:hover { border-color: var(--marque); background: var(--marque-voile); color: var(--marque-fort); }
-/* Les groupes de colonnes, et le taux en point et marge : point = son taux, trait gris = sa marge à 95 %, trait vertical = le département. */
+/* Les lignes du tableau, et le taux en point et marge : point = son taux, trait gris = sa marge à 95 %, trait vertical = le département. */
 .groupes-col { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+/* Au téléphone, les en-têtes sont cachés : le choix des colonnes s'ouvre d'un lien, au-dessus des cartes. */
+.cols-etroit { display: none; }
 /* Le « ? » d'un en-tête : une cible de 24 px, qui ouvre la bulle au-dessus du tableau. */
 .tab th button.aide-col {
   margin-left: 4px; min-width: 24px; min-height: 24px; padding: 0 6px; border: 1px solid var(--trait-fort); border-radius: var(--rayon-pilule);
@@ -510,6 +543,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .cc-bouton[aria-disabled="true"] { opacity: 0.35; cursor: default; }
 .cc-bouton[aria-disabled="true"]:hover { background: none; }
 .cc-ajout { display: grid; gap: 6px; }
+.cc-pied { display: flex; flex-wrap: wrap; gap: 6px 18px; }
 .cc-groupe { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
 .cc-titre { min-width: 10rem; font-size: 12.5px; color: var(--encre-2); }
 .defs { font-size: var(--t-petit); }
@@ -524,7 +558,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .jumeau > summary::marker { color: var(--marque); }
 .jumeau > summary:hover { color: var(--marque-fort); }
 .jumeau[open] > summary { margin-bottom: 6px; }
-.th-sous { display: block; font-weight: 400; font-size: 11.5px; color: var(--encre-2); }
+.th-sous { display: block; font-weight: 400; font-size: 11px; color: var(--encre-2); }
 .piste.taux { height: 8px; }
 .piste .marge, .g-marge { position: absolute; top: 1px; bottom: 1px; background: var(--barre); }
 .piste .pt, .g-pt { position: absolute; top: 50%; width: 9px; height: 9px; border-radius: 50%; background: var(--encre); border: 1.5px solid var(--surface); transform: translate(-50%, -50%); }
@@ -547,6 +581,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
   .tab tbody tr.choisi td, .tab tbody tr:hover td { background: none; }
   .tab tbody tr.choisi td:first-child { box-shadow: none; }
   .tab tbody tr.sep { display: block; margin: 0 0 8px; padding: 0; border: 0; background: none; text-align: center; }
+  .cols-etroit { display: flex; }
 }
 
 /* ---------- la carte : son fond et ses traits gardent les gris validés avec les couleurs des données */
@@ -759,7 +794,7 @@ button.g-ligne:hover .g-nom { text-decoration: underline; text-underline-offset:
 .btn-x:hover { border-color: var(--marque); background: var(--marque-voile); color: var(--marque-fort); }
 
 /* Le tableau ne défile plus dans une boîte : il montre ses premières lignes, puis « Tout afficher ». */
-.defile { max-height: none; overflow-x: auto; overflow-y: visible; }
+.defile { position: relative; max-height: none; overflow-x: auto; overflow-y: visible; }
 .plus { margin-top: 2px; }
 /* « Ensemble » : un fond creusé, des cartes blanches posées dessus, des tuiles qui ouvrent ce qu'elles comptent */
 #ens-corps { background: var(--surface-creuse); border-radius: 0 0 calc(var(--rayon-carte) - 1px) calc(var(--rayon-carte) - 1px); }
@@ -934,11 +969,19 @@ button.g-ligne:hover .g-nom { text-decoration: underline; text-underline-offset:
         <p class="note-bandeau" id="lieu-aide">Tapez une commune, un arrondissement ou un département ; plusieurs lieux d'un même département s'ajoutent les uns aux autres. La page charge alors ce département ; elle demande à l'IGN les contours de ses communes quand vous ouvrez la carte, et un fond de carte ou les parcelles si vous les choisissez. L'adresse et la taille de votre copropriété restent sur votre écran ; de son numéro, seuls les trois premiers caractères partent, s'il faut chercher son département.</p>
         <p class="vh" id="taille-aide">Huit tranches, de 2 à 5 lots jusqu'à 500 lots et plus ; tout à gauche, toutes les tailles.</p>
         <div class="etiquettes" id="etiquettes" aria-label="Filtres posés"></div>
-        <div class="onglets" id="onglets" role="tablist" aria-label="Vues">
-          <button type="button" role="tab" id="og-tableau" data-vue="tableau" aria-controls="vue-tableau">Tableau</button>
-          <button type="button" role="tab" id="og-carte" data-vue="carte" aria-controls="vue-carte">Carte</button>
-          <button type="button" role="tab" id="og-graphiques" data-vue="graphiques" aria-controls="vue-graphiques">Graphiques</button>
-          <button type="button" role="tab" id="og-ensemble" data-vue="ensemble" aria-controls="vue-ensemble">Ensemble</button>
+        <div class="onglets-ligne" id="onglets-ligne">
+          <div class="onglets" id="onglets" role="tablist" aria-label="Vues">
+            <button type="button" role="tab" id="og-tableau" data-vue="tableau" aria-controls="vue-tableau">Tableau</button>
+            <button type="button" role="tab" id="og-carte" data-vue="carte" aria-controls="vue-carte">Carte</button>
+            <button type="button" role="tab" id="og-graphiques" data-vue="graphiques" aria-controls="vue-graphiques">Graphiques</button>
+            <button type="button" role="tab" id="og-ensemble" data-vue="ensemble" aria-controls="vue-ensemble">Ensemble</button>
+          </div>
+          <button type="button" class="btn-filtres btn-partager" id="btn-partager" data-act="partager" aria-controls="partage" hidden><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 10V1.8M4.9 4.6 8 1.5l3.1 3.1M3.2 7.6v6.4h9.6V7.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="txt">Partager</span></button>
+        </div>
+        <div class="partage" id="partage" hidden>
+          <p id="partage-note" role="status"></p>
+          <input type="text" class="partage-lien" id="partage-lien" readonly aria-label="Lien de l'écran affiché" hidden>
+          <button type="button" class="lien petit" data-act="partage-fermer">Fermer</button>
         </div>
       </div>
       <script>document.documentElement.classList.add("amorce");</script>
@@ -959,12 +1002,13 @@ button.g-ligne:hover .g-nom { text-decoration: underline; text-underline-offset:
             </div>
             <div class="vue-corps">
               <div class="groupes-col" id="modes-tab" role="group" aria-label="Lignes du tableau" hidden></div>
-              <div class="groupes-col" id="groupes-col" role="group" aria-label="Colonnes du tableau" hidden></div>
-              <div class="choix-col" id="choix-col" role="region" aria-label="Choix et ordre des colonnes" hidden></div>
+              <div class="groupes-col cols-etroit" id="groupes-col" role="group" aria-label="Colonnes du tableau" hidden></div>
+              <div class="choix-col" id="choix-col" role="region" aria-label="Choix et ordre des colonnes" tabindex="-1" hidden></div>
               <p class="bulle" id="tab-bulle" aria-live="polite" hidden></p>
               <p class="legende" id="tab-legende"></p>
               <div class="defile" id="tab-defile">
                 <table class="tab"><thead id="tab-tete"></thead><tbody id="tab-corps"></tbody></table>
+                <span class="col-repere" id="col-repere" hidden></span>
                 <p class="vide" id="tab-vide" hidden></p>
               </div>
               <div id="tab-plus"></div>
@@ -1033,7 +1077,7 @@ button.g-ligne:hover .g-nom { text-decoration: underline; text-underline-offset:
         </section>
         <section class="pied-bloc" aria-labelledby="pied-donnees">
           <h2 id="pied-donnees">Données personnelles</h2>
-          <p>Aucun dirigeant n'est nommé, ni aucun syndic bénévole ou copropriétaire, et un syndic en entreprise individuelle ne l'est jamais. Aucune adresse n'est écrite. La page demande à son propre site le fichier du département que vous choisissez ; pour un numéro de copropriété qui n'y est pas, la partie de l'index des numéros qui porte ses trois premiers caractères. Ce site reçoit donc votre adresse IP, le département et ces trois caractères. Quand vous ouvrez la carte, votre navigateur demande au serveur de l'IGN (data.geopf.fr) les contours des communes du département : l'IGN reçoit votre adresse IP et le code du département. Si vous choisissez un fond de carte ou les parcelles du cadastre, il reçoit aussi les coordonnées de la zone affichée : si la carte est centrée sur votre copropriété, il peut en déduire à peu près où elle se trouve. Le reste de ce que vous tapez, la taille de votre copropriété et vos filtres restent dans votre navigateur : la page ne les envoie nulle part, et son lien ne porte que le code du département. La page ne dépose aucun cookie ; elle garde seulement, dans votre navigateur, les colonnes que vous choisissez et, le temps de changer de département, le lieu ou le numéro choisi.</p>
+          <p>Aucun dirigeant n'est nommé, ni aucun syndic bénévole ou copropriétaire, et un syndic en entreprise individuelle ne l'est jamais. Aucune adresse n'est écrite. La page demande à son propre site le fichier du département que vous choisissez ; pour un numéro de copropriété qui n'y est pas, la partie de l'index des numéros qui porte ses trois premiers caractères. Ce site reçoit donc votre adresse IP, le département et ces trois caractères. Quand vous ouvrez la carte, votre navigateur demande au serveur de l'IGN (data.geopf.fr) les contours des communes du département : l'IGN reçoit votre adresse IP et le code du département. Si vous choisissez un fond de carte ou les parcelles du cadastre, il reçoit aussi les coordonnées de la zone affichée : si la carte est centrée sur votre copropriété, il peut en déduire à peu près où elle se trouve. Le reste de ce que vous tapez, la taille de votre copropriété et vos filtres restent dans votre navigateur : la page ne les envoie nulle part, et son lien ne porte que le code du département. Seul le lien que vous copiez avec « Partager » reprend l'écran affiché, tranche de taille et filtres compris, jamais le numéro ni l'adresse de votre copropriété ; il l'écrit après le « # », la partie d'un lien qu'un navigateur n'envoie pas au serveur. La page ne dépose aucun cookie ; elle garde seulement, dans votre navigateur, les colonnes que vous choisissez et, le temps de changer de département, le lieu ou le numéro choisi.</p>
         </section>
         <section class="pied-bloc" aria-labelledby="pied-retours">
           <h2 id="pied-retours">Signaler un problème, proposer une idée</h2>
@@ -1077,7 +1121,8 @@ button.g-ligne:hover .g-nom { text-decoration: underline; text-underline-offset:
     const MN = window.SYNDICO_MANIFESTE, f = MN.deps[dep];
     $("lieu-liste").hidden = true;
     dire(`Chargement : ${f.nom} (${dep}), ${nb(f.copros)} copropriétés au registre…`);
-    if (decodeURIComponent(location.hash.slice(1)) !== dep) history.replaceState(null, "", "#" + dep);
+    // l'adresse ne garde que le département : un écran partagé, une fois lu, n'y reste pas
+    if (location.hash !== "#" + dep) history.replaceState(null, "", "#" + dep);
     json(f.f).then((D) => {
       window.SYNDICO_D = D;
       window.SYNDICO_AMORCE = a;
@@ -1144,8 +1189,9 @@ button.g-ligne:hover .g-nom { text-decoration: underline; text-underline-offset:
     window.SYNDICO_MANIFESTE = MN;
     return json(MN.communes).then((X) => {
       window.SYNDICO_COMMUNES = X;
-      const dep = decodeURIComponent(location.hash.slice(1));
-      if (MN.deps[dep]) charger(dep, relais && relais.dep === dep ? relais : null);
+      // « #13 », ou « #13&… » pour un écran partagé : le département, puis ce que la page applique une fois chargée
+      const h = location.hash.slice(1), k = h.indexOf("&"), dep = k < 0 ? h : h.slice(0, k), partage = k < 0 ? "" : h.slice(k + 1);
+      if (MN.deps[dep]) charger(dep, relais && relais.dep === dep ? relais : partage ? { dep, partage } : null);
       else accueil(MN, X);
     });
   }).catch((e) => dire(`La page n'a pas pu lire ses données (${e.message}). Rechargez-la.`));

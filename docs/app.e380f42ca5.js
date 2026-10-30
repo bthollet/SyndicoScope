@@ -202,7 +202,10 @@
   for (let i = 0; i < N; i++) if (ENT[i] >= 0 && MARS_Z.has(ZONE[i])) BASE_MARS[ENT[i]]++;
   const PERIODE_J = JM ? "de " + JM.periode[0].slice(0, 4) + " à " + JM.periode[1].slice(0, 4) : "";
   const PHRASE_JUDILIBRE = "Judilibre, la base de décisions de la Cour de cassation, ne publie qu'une partie des décisions rendues. Une décision qui n'y figure pas n'est pas comptée ici.";
-  const MENTION_J = JM ? `Décisions publiées ${PERIODE_J} : ${JM.zone}. Méthode : ${JM.methode}. ${PHRASE_JUDILIBRE}` : "";
+  // Ce que le relevé lit : le contentieux de la gouvernance, routé par règles dans celui des copropriétés de Marseille ; le reste n'est pas lu.
+  const PERIMETRE_J = "Le relevé ne lit que le contentieux de l'organisation et de l'administration de la copropriété : assemblées générales, administrateur provisoire, responsabilité, carence ou révocation du syndic, remise des archives et des fonds.";
+  const HORS_J = "Les recouvrements de charges, les saisies et les autres litiges n'y entrent que s'ils touchent aussi à ces questions : un syndic peut y être mis en cause sans être compté ici.";
+  const MENTION_J = JM ? `Décisions publiées ${PERIODE_J} : ${JM.zone}. ${PERIMETRE_J} ${HORS_J} Méthode : ${JM.methode}. ${PHRASE_JUDILIBRE}` : "";
   // La note de méthode : comment le relevé de Marseille a été fait, en étapes qu'un autre département peut reprendre.
   const NOTE_J = "Aucune décision de justice n'est relevée pour ce département : le relevé n'a été fait que pour les juridictions de Marseille.";
   const ETAPES_J = [
@@ -237,6 +240,13 @@
     if (n < 10) return nb(k) + " pour " + nb(n) + " " + accord(n, "copropriété gérée", "copropriétés gérées") + " à Marseille";
     const v = (100 * k) / n;
     return (v === 0 ? "0" : v < 0.05 ? "moins de 0,1" : v < 9.95 ? f1.format(v) : nb(Math.round(v))) + " pour 100 copropriétés gérées à Marseille";
+  }
+  // La même chose dans une cellule du tableau : la base est dite par la définition de la colonne.
+  function sur100Court(k, n) {
+    if (!n) return "aucune gérée à Marseille";
+    if (n < 10) return nb(k) + " pour " + nb(n);
+    const v = (100 * k) / n;
+    return (v === 0 ? "0" : v < 0.05 ? "moins de 0,1" : v < 9.95 ? f1.format(v) : nb(Math.round(v))) + " pour 100";
   }
   // Pas de distribution pour la justice, les comptes sont petits : une phrase de contexte parmi les syndics de sa taille.
   function phraseJustice(e, id) {
@@ -413,13 +423,13 @@
     triDefaut: "ici", format: "large",
     // Les lieux choisis, dans leur ordre ; « zone » les réunit. La copropriété, ou l'adresse et le lieu où la page la ramène.
     lieux: [], zone: null, tf: -1, constr: -1, copro: null, adresse: null, adresseLieu: null, rayon: 0,
-    tri: "ici", sens: "desc", groupe: "portefeuille", triChoisi: false, sel: null, fiche: null, cadrage: "bureaux",
+    tri: "ici", sens: "desc", triChoisi: false, sel: null, fiche: null, cadrage: "bureaux",
     // La page s'ouvre sur « Ensemble », qui ne nomme personne ; le premier lieu choisi ouvre le tableau, sauf si le visiteur a déjà choisi un onglet.
     onglet: "ensemble", ongletChoisi: false, filtresOuverts: false,
     // Les étiquettes posées d'un clic dans « Ensemble » ; le mode du tableau (syndics ou décisions) ; les listes dépliées.
     filtres: {}, modeTab: "syndics", filtreDec: null, tout: {},
-    // Les colonnes du visiteur, dans son ordre (« Mes colonnes ») ; le panneau qui les choisit ; la définition ouverte par un « ? ».
-    perso: null, choixCol: false, aideCol: null,
+    // Les colonnes montrées après les deux fixes, dans l'ordre du visiteur ; le panneau qui les choisit ; la définition ouverte par un « ? ».
+    cols: null, choixCol: false, aideCol: null,
     // La carte : sa couche (les syndics ou les copropriétés) et la couleur de ses points.
     couche: "syndics", couleur: "type",
     // Les images de l'IGN sous la carte, éteintes par défaut : un fond (le plan ou les photographies aériennes) et les parcelles du cadastre.
@@ -459,35 +469,33 @@
   };
   const libFiltreDec = (f) => Object.keys(f).map((k) => FILTRES_DEC[k].lib(f[k])).join(" · ");
 
-  // Le premier sens de chaque tri : du plus fort au plus faible, sauf le nom, l'encadrement et la distance ; et le groupe de colonnes qui montre chaque tri.
+  // Le premier sens de chaque tri : du plus fort au plus faible, sauf le nom, l'encadrement et la distance ; et le groupe de chaque colonne mobile.
   const SENS = { nom: "asc", enc: "asc", dist: "asc" };
   const GROUPE_DE = { part: "portefeuille", taille: "portefeuille", enc: "portefeuille", dist: "portefeuille", n0: "devenir", i1: "devenir", i2: "devenir", i5: "devenir",
     i3: "registre", i4: "registre", i6: "registre", i7: "registre", jbase: "justice", j1: "justice", j2: "justice", j3: "justice" };
   const GROUPES = [["portefeuille", "Portefeuille"], ["devenir", "Devenir depuis 2025"], ["registre", "Tenue du registre"], ["justice", "Justice à Marseille"]].filter((g) => AVEC_J || g[0] !== "justice");
   // L'ordre du menu « Trier par » : les tris proposés à la décision d'abord, puis les autres colonnes.
   const PROPOSES = ["ici", "i1", "i2", "i3", "i6", "j3", "enc", "dist", "taille", "nom"];
-  // Les jeux de colonnes : « Proposées » mêle les groupes ; « Mes colonnes », la liste du visiteur, apparaît dès qu'il en compose une.
-  const PROPOSEES = ["taille", "i1", "i2", "i6", "dist"];
-  const JEUX = [["proposees", "Proposées"], ...GROUPES];
-  const idsDuJeu = (g) => (g === "perso" ? etat.perso || [] : g === "proposees" ? PROPOSEES : Object.keys(GROUPE_DE).filter((id) => GROUPE_DE[id] === g));
-  const visible = (id) => !GROUPE_DE[id] || idsDuJeu(etat.groupe).includes(id);
-  // Un tri sur une colonne cachée la montre : dans « Mes colonnes », elle s'ajoute à la fin ; sinon, son groupe s'ouvre.
-  function montrerColonne(id) {
-    if (visible(id)) return;
-    if (etat.groupe === "perso") { etat.perso = etat.perso.concat([id]); garderPerso(); }
-    else etat.groupe = GROUPE_DE[id];
-  }
-  // Les deux colonnes fixes, puis celles du jeu : un groupe dans son ordre établi, ou une liste dans l'ordre du visiteur.
+  // Les colonnes montrées par défaut après « Syndic » et les copropriétés ici. Celle qu'une page n'a pas (la part, sans tranche
+  // choisie ; la justice, sans relevé) reste dans la liste, cachée, et revient avec ses données.
+  const COLS_DEFAUT = ["part", "taille", "dist", "j3", "j1", "j2", "i6", "n0", "i1"];
+  const memesCols = (a, b) => a.length === b.length && a.every((id, k) => id === b[k]);
+  const visible = (id) => !GROUPE_DE[id] || etat.cols.includes(id);
+  // Un tri sur une colonne cachée la montre, à la fin.
+  const montrerColonne = (id) => { if (!visible(id)) etat.cols = etat.cols.concat([id]); };
+  // Les deux colonnes fixes, puis celles du visiteur, dans son ordre.
   function colonnesVisibles(cols) {
-    const g = etat.groupe, fixes = cols.filter((x) => !x.g);
-    if (g !== "perso" && g !== "proposees") return fixes.concat(cols.filter((x) => x.g === g));
     const par = new Map(cols.map((x) => [x.id, x]));
-    return fixes.concat(idsDuJeu(g).map((id) => par.get(id)).filter(Boolean));
+    return cols.filter((x) => !x.g).concat(etat.cols.map((id) => par.get(id)).filter(Boolean));
   }
-  // « Mes colonnes » reste dans ce navigateur d'une visite à l'autre, sans s'imposer : la page s'ouvre toujours sur le jeu par défaut.
-  const CLE_PERSO = "syndicoscope.v4.colonnes";
-  function garderPerso() { try { localStorage.setItem(CLE_PERSO, JSON.stringify(etat.perso)); } catch (e) { /* stockage refusé : le choix vaut pour la visite */ } }
-  try { const v = JSON.parse(localStorage.getItem(CLE_PERSO) || "null"); if (Array.isArray(v) && v.length && v.every((id) => GROUPE_DE[id])) etat.perso = v; } catch (e) { /* rien de gardé */ }
+  // Les colonnes retouchées restent dans ce navigateur d'une visite à l'autre ; « Colonnes par défaut » les oublie.
+  const CLE_COLS = "syndicoscope.v5.colonnes";
+  function garderCols() {
+    try { if (memesCols(etat.cols, COLS_DEFAUT)) localStorage.removeItem(CLE_COLS); else localStorage.setItem(CLE_COLS, JSON.stringify(etat.cols)); }
+    catch (e) { /* stockage refusé : le choix vaut pour la visite */ }
+  }
+  etat.cols = COLS_DEFAUT.slice();
+  try { const v = JSON.parse(localStorage.getItem(CLE_COLS) || "null"); if (Array.isArray(v) && v.every((id) => GROUPE_DE[id]) && new Set(v).size === v.length) etat.cols = v; } catch (e) { /* rien de gardé */ }
   // Ce que dit chaque colonne : la bulle « ? » et la liste sous le tableau. Les taux prennent leur définition dans IND.
   const DEF_COL = {
     ici: "Copropriétés du lieu, ou du cercle, de la taille et de la construction choisies, pour lesquelles ce syndic est déclaré au registre aujourd'hui.",
@@ -501,7 +509,12 @@
   };
   const LIMITE_COL = { part: "Ne permet pas de conclure qu'il accepte un nouveau mandat.", taille: "Être très présent ne dit rien de la qualité d'un syndic, ni de ses prix." };
   const defCol = (x) => x.def || DEF_COL[x.id] || "";
-  const limiteCol = (x) => (IND[x.id] ? IND[x.id].limite : JIND[x.id] ? JIND[x.id].limite : LIMITE_COL[x.id] || "");
+  const limiteCol = (x) => (IND[x.id] ? IND[x.id].limite : JIND[x.id] ? JIND[x.id].limite + " " + HORS_J : LIMITE_COL[x.id] || "");
+  // Les titres courts des en-têtes ; le titre entier reste dans leur infobulle, la bulle « ? », les définitions, le menu de tri et l'étiquette des cartes.
+  const COURTS = { ici: "Copropriétés ici", part: "Part de son portefeuille", taille: "Taille du syndic", enc: "Lots par salarié", i1: "Toujours chez lui",
+    i2: "Chez un concurrent", i3: "Expiré sans successeur", i5: "Arrivées d'un autre syndic", i6: "Pas à jour depuis 12 mois", i7: "Fin de mandat passée",
+    jbase: "Gérées à Marseille", j3: "Mis en cause en son nom", j2: "Responsabilité retenue" };
+  const titreCourt = (x) => COURTS[x.id] || x.titre;
   let R = null;
   const RAYONS = [1000, 2000, 5000, 10000, 20000];
   const kmTxt = (m) => nb(m / 1000) + " km";
@@ -586,7 +599,7 @@
         const k = jCompte(r.e, id), n = BASE_MARS[r.e];
         if (k == null) return `<span class="sans">non renseigné</span>`;
         if (!k && !n) return `<span class="sans">hors du périmètre lu</span>`;
-        return `<span class="val">${nb(k)}</span><span class="sous">${esc(sur100(k, n))}</span>`;
+        return `<span class="val">${nb(k)}</span><span class="sous">${esc(sur100Court(k, n))}</span>`;
       } });
     const cols = [
       { id: "nom", g: null, titre: "Syndic", sens: "asc", cle: () => 0 },
@@ -595,7 +608,7 @@
     if (etat.tf >= 0) cols.push({ id: "part", g: "portefeuille", titre: "Part de son portefeuille dans le département", sens: "desc", cle: (r) => (r.part[1] >= 10 ? r.part[0] / r.part[1] : null), cel: (r) => celPart(r.part) });
     cols.push(
       { id: "taille", g: "portefeuille", titre: "Taille du syndic dans le département", sens: "desc", cle: (r) => TOUT_DEPT[r.e],
-        cel: (r) => `<span class="val">${LIB_CLASSE[classeTaille(TOUT_DEPT[r.e])]}</span><span class="sous">${nb(TOUT_DEPT[r.e])} ${accord(TOUT_DEPT[r.e], "copropriété", "copropriétés")}</span>` },
+        cel: (r) => `<span class="val">${nb(TOUT_DEPT[r.e])}<span class="vh"> ${accord(TOUT_DEPT[r.e], "copropriété", "copropriétés")}</span></span>` },
       { id: "enc", g: "portefeuille", titre: "Lots par salarié déclaré", sens: "asc", cle: (r) => (ENC[r.e] ? ENC[r.e].mid : null), cel: (r) => celEnc(r.e) },
       { id: "dist", g: "portefeuille", titre: avecDist ? "Bureau le plus proche" : "Bureau", sens: "asc", triable: avecDist, cle: (r) => r.d, cel: celBureau },
       { id: "n0", g: "devenir", titre: "Ses copropriétés de 2025", def: "Copropriétés du département qui le déclaraient au 3e trimestre 2025, avec les critères en cours : la base du devenir.", sens: "desc",
@@ -604,7 +617,7 @@
       { id: "i5", g: "devenir", titre: IND.i5.titre, def: IND.i5.def, sens: "desc", cle: (r) => (S.n0[r.e] >= 10 ? S.arrV[r.e] / S.n0[r.e] : null), cel: (r) => celPour100(S.arrV[r.e], S.n0[r.e]) },
       colTaux("i3", "registre"), colTaux("i4", "registre"), colTaux("i6", "registre"),
       { id: "i7", g: "registre", titre: IND.i7.titre, def: IND.i7.def, sens: "desc", cle: (r) => S.finK[r.e],
-        cel: (r) => `<span class="val">${nb(S.finK[r.e])}</span><span class="sous">sur ${nb(S.finN[r.e])} ${accord(S.finN[r.e], "mandat daté", "mandats datés")}</span>` },
+        cel: (r) => `<span class="val">${nb(S.finK[r.e])}</span><span class="sous">sur ${nb(S.finN[r.e])}</span>` },
     );
     // un département sans relevé de justice n'a pas ces colonnes
     if (AVEC_J) cols.push(
@@ -667,24 +680,43 @@
   function triVisible() {
     if (!visible(etat.tri)) { etat.tri = visible(etat.triDefaut) ? etat.triDefaut : "ici"; etat.sens = SENS[etat.tri] || "desc"; etat.triChoisi = false; }
   }
-  function choisirGroupe(g) {
-    etat.groupe = g;
+  // Toute retouche part des colonnes montrées : ajouter, retirer, monter, descendre, poser une colonne glissée devant une autre
+  // (« col-vers » ; sans voisine, à la dernière place), ou revenir aux colonnes par défaut.
+  function modifierColonnes(act, id, avant) {
+    const cols = colonnes(), dispo = new Set(cols.filter((x) => x.g).map((x) => x.id));
+    const V = colonnesVisibles(cols).filter((x) => x.g).map((x) => x.id), k = V.indexOf(id);
+    if (act === "col-defaut") etat.cols = COLS_DEFAUT.slice();
+    else {
+      if (act === "col-ajouter" && k < 0 && dispo.has(id)) V.push(id);
+      else if (act === "col-retirer" && k >= 0) V.splice(k, 1);
+      else if ((act === "col-haut" && k > 0) || (act === "col-bas" && k >= 0 && k < V.length - 1)) { const j = act === "col-haut" ? k - 1 : k + 1; [V[k], V[j]] = [V[j], V[k]]; }
+      else if (act === "col-vers" && k >= 0 && avant !== id) { V.splice(k, 1); const j = avant == null ? -1 : V.indexOf(avant); V.splice(j < 0 ? V.length : j, 0, id); }
+      else return;
+      // une colonne que la page n'a pas en ce moment (la part, sans tranche choisie ; la justice, sans relevé) suit la colonne montrée
+      // qui la précédait, ou, si celle-ci est retirée, la dernière d'avant qui reste : elle revient là où le visiteur l'a laissée
+      const garde = new Set(V), suite = new Map();
+      let ancre = null, reste = null;
+      for (const c of etat.cols) {
+        if (!dispo.has(c)) suite.set(ancre, (suite.get(ancre) || []).concat([c]));
+        else if (garde.has(c)) ancre = reste = c;
+        else ancre = reste;
+      }
+      etat.cols = (suite.get(null) || []).concat(...V.map((c) => [c].concat(suite.get(c) || [])));
+    }
+    garderCols();
     triVisible();
     garderFocus(() => { rendreTableau(); rendreGraphiques(); });
+    // une colonne retirée emporte son bouton : le focus passe à la voisine, ou à ce qui ouvre le choix
+    if (act === "col-retirer") { const b = V.length ? document.querySelector(`#choix-col [data-act="col-retirer"][data-v="${V[Math.min(k, V.length - 1)]}"]`) : ouvreurChoix(); if (b) b.focus({ preventScroll: true }); }
   }
-  // Toute retouche part des colonnes montrées et devient « Mes colonnes » : ajouter, retirer, monter, descendre.
-  function modifierColonnes(act, id) {
-    const L = colonnesVisibles(colonnes()).filter((x) => x.g).map((x) => x.id), k = L.indexOf(id);
-    if (act === "col-ajouter" && k < 0) L.push(id);
-    else if (act === "col-retirer" && k >= 0) L.splice(k, 1);
-    else if ((act === "col-haut" && k > 0) || (act === "col-bas" && k >= 0 && k < L.length - 1)) { const j = act === "col-haut" ? k - 1 : k + 1; [L[k], L[j]] = [L[j], L[k]]; }
-    else return;
-    Object.assign(etat, { perso: L, groupe: "perso" });
-    garderPerso();
-    triVisible();
-    garderFocus(() => { rendreTableau(); rendreGraphiques(); });
-    // une colonne retirée emporte son bouton : le focus passe à la voisine, ou au bouton du panneau
-    if (act === "col-retirer") { const b = document.querySelector(L.length ? `#choix-col [data-act="col-retirer"][data-v="${L[Math.min(k, L.length - 1)]}"]` : `#groupes-col [data-act="choix-col"]`); if (b) b.focus({ preventScroll: true }); }
+  // Le choix des colonnes s'ouvre du « + » des en-têtes, ou, au téléphone, du lien au-dessus des cartes ; il prend le focus, et le rend en se fermant.
+  const ouvreurChoix = () => document.querySelector($("vue-tableau").clientWidth <= 560 ? '#groupes-col [data-act="choix-col"]' : '#tab-tete [data-act="choix-col"]');
+  function basculerChoixCol(fermer) {
+    etat.choixCol = fermer ? false : !etat.choixCol;
+    rendreTableau();
+    const p = $("choix-col"), b = etat.choixCol ? p : ouvreurChoix();
+    if (etat.choixCol && p.scrollIntoView) p.scrollIntoView({ block: "nearest" });
+    if (b) b.focus({ preventScroll: true });
   }
   // Un syndic choisi ailleurs que sur la carte : la carte se cadre sur ses copropriétés, sauf si le visiteur a demandé le lieu seul.
   function choisir(e, depuisCarte) {
@@ -814,9 +846,9 @@
     if (c.id !== "nom") s += " À égalité, les copropriétés ici, puis le nom, départagent.";
     return "<strong>Trier n'est pas classer</strong> : l'ordre ne dit rien de la qualité d'un syndic. " + esc(s) + " Un clic sur l'en-tête du tri en cours inverse le sens.";
   }
-  // Sous le tableau : ce que disent les colonnes du groupe ouvert, leur base et leurs mentions.
-  function limiteGroupe() {
-    const gs = new Set(idsDuJeu(etat.groupe).map((id) => GROUPE_DE[id])), p = [];
+  // Sous le tableau : ce que disent les colonnes montrées, leur base et leurs mentions.
+  function limiteGroupe(vis) {
+    const gs = new Set(vis.map((x) => x.g)), p = [];
     if (gs.has("devenir") || gs.has("registre")) p.push(`Base des taux : ${baseDev()} ; pour la tenue des fiches, ${baseMaj()}. Point : son taux ; trait gris : sa marge à 95 % ; trait vertical : tout le département sur la même base. Le registre est déclaratif : il dit ce que le syndic a déclaré, et quand. Sa position parmi ses pairs est dans sa fiche.`);
     if (gs.has("justice")) p.push(`Taux pour 100 copropriétés gérées à Marseille aujourd'hui, toutes tailles. ${MENTION_J}`);
     return p.length ? p.join(" ") : "La liste dit qui gère déjà des copropriétés comme la vôtre ici. Elle ne dit rien de la qualité de cette gestion, ni de ses prix.";
@@ -829,7 +861,7 @@
   // Un taux : la valeur, « k sur n », puis le point, sa marge à 95 % et le repère du département, sur l'échelle commune de la colonne.
   function celTaux(k, n, ref, mx) {
     if (!n) return `<span class="sans">aucune</span>`;
-    if (n < 10) return `<span class="val">${nb(k)} sur ${nb(n)}</span><span class="sous">trop peu pour un pourcentage</span>`;
+    if (n < 10) return `<span class="val">${nb(k)} sur ${nb(n)}</span><span class="sous">trop peu pour un taux</span>`;
     const p = k / n, [b, h] = wilson(k, n), X = (v) => (100 * Math.min(v, mx)) / mx;
     return `<span class="val">${pctNb(k, n)} %</span><span class="sous">${nb(k)} sur ${nb(n)}</span><span class="piste taux">${ref != null ? `<span class="ref" style="left:${X(ref).toFixed(1)}%"></span>` : ""}<span class="marge" style="left:${X(b).toFixed(1)}%;width:${Math.max(0.8, X(h) - X(b)).toFixed(1)}%"></span><span class="pt" style="left:${X(p).toFixed(1)}%"></span></span>`;
   }
@@ -882,22 +914,22 @@
     const cols = colonnes(), c = colCourante(cols), L = trier(R.liste, c, etat.sens);
     R.ordre = L;
     const vis = colonnesVisibles(cols);
+    // au téléphone, où les en-têtes sont cachés, le choix des colonnes s'ouvre de ce lien
     $("groupes-col").hidden = false;
-    $("groupes-col").innerHTML = `<span class="trier">Colonnes</span>` + JEUX.map(([v, l]) => puce("groupe", v, l, etat.groupe === v, "petite")).join("") +
-      (etat.perso ? puce("groupe", "perso", "Mes colonnes", etat.groupe === "perso", "petite") : "") +
-      `<button type="button" class="lien petit" data-act="choix-col" aria-expanded="${etat.choixCol}" aria-controls="choix-col">${etat.choixCol ? "Fermer le choix des colonnes" : "Choisir et ordonner les colonnes"}</button>`;
+    $("groupes-col").innerHTML = `<button type="button" class="lien petit" data-act="choix-col" aria-expanded="${etat.choixCol}" aria-controls="choix-col">${etat.choixCol ? "Fermer le choix des colonnes" : "Choisir les colonnes"}</button>`;
     rendreChoixTri(cols);
     vide.hidden = L.length > 0;
     vide.textContent = R.tous.length && !L.length ? "Aucun syndic de la liste ne répond aux étiquettes posées : retirez-en une." : "Aucun syndic professionnel ne déclare de copropriété de ce type ici. Essayez la tranche voisine, ou un cercle plus large.";
     $("tab-limite").hidden = false;
-    $("tab-limite").textContent = limiteGroupe();
+    $("tab-limite").textContent = limiteGroupe(vis);
     const maxIci = L.reduce((m, r) => Math.max(m, r.ici), 1);
     tete.innerHTML = "<tr>" + vis.map((x) => {
-      const sous = x.taux ? `<span class="th-sous">échelle de 0 à ${nb(Math.round(100 * x.mx))} %</span>` : "";
-      const tri = x.triable === false ? esc(x.titre) : `<button type="button" data-tri="${x.id}">${esc(x.titre)}</button>`;
+      const sous = x.taux ? `<span class="th-sous">0 à ${nb(Math.round(100 * x.mx))} %</span>` : x.id === "ici" && etat.tf >= 0 ? `<span class="th-sous">${esc(libTranche(etat.tf))}</span>` : "";
+      const t = titreCourt(x), plein = t !== x.titre ? ` title="${esc(x.titre)}"` : "";
+      const tri = x.triable === false ? `<span${plein}>${esc(t)}</span>` : `<button type="button" data-tri="${x.id}"${plein}>${esc(t)}</button>`;
       const aide = defCol(x) ? `<button type="button" class="aide-col" data-act="aide-col" data-v="${x.id}" aria-expanded="${etat.aideCol === x.id}" aria-controls="tab-bulle" aria-label="Ce que dit la colonne : ${esc(x.titre)}" title="${esc(defCol(x))}">?</button>` : "";
-      return `<th scope="col"${x.id === c.id ? ` aria-sort="${etat.sens === "asc" ? "ascending" : "descending"}"` : ""}>${tri}${aide}${sous}</th>`;
-    }).join("") + `<th scope="col"><span class="vh">Fiche</span></th></tr>`;
+      return `<th scope="col" data-col="${x.id}"${x.g ? ' class="mobile"' : ""}${x.id === c.id ? ` aria-sort="${etat.sens === "asc" ? "ascending" : "descending"}"` : ""}>${tri}${aide || sous ? `<span class="th-pied">${aide}${sous}</span>` : ""}</th>`;
+    }).join("") + `<th scope="col" class="th-plus"><span class="vh">Fiche</span><button type="button" class="col-plus" data-act="choix-col" aria-expanded="${etat.choixCol}" aria-controls="choix-col" aria-label="Ajouter, retirer ou déplacer des colonnes" title="Ajouter, retirer ou déplacer des colonnes">+</button></th></tr>`;
     corps.innerHTML = premieres(L, "tab", LIM_TAB, etat.sel).map((r) => {
       if (!r) return `<tr class="sep"><td colspan="${vis.length + 1}"><span class="sans">…</span></td></tr>`;
       const x = ENTS[r.e], on = etat.sel === r.e, etiq = [];
@@ -936,9 +968,10 @@
     const ligne = (x, k) => `<li><span class="cc-nom">${esc(x.titre)}</span><span class="cc-actions">${bouton("col-haut", x, "↑", "Monter", k === 0)}${bouton("col-bas", x, "↓", "Descendre", k === n - 1)}${bouton("col-retirer", x, "Retirer", "Retirer", false)}</span></li>`;
     const caches = cols.filter((x) => x.g && !mob.includes(x));
     const ajout = GROUPES.map(([g, l]) => { const a = caches.filter((x) => x.g === g); return a.length ? `<div class="cc-groupe"><span class="cc-titre">${esc(l)}</span>${a.map((x) => `<button type="button" class="puce petite" data-act="col-ajouter" data-v="${x.id}">+ ${esc(x.titre)}</button>`).join("")}</div>` : ""; }).join("");
-    p.innerHTML = `<p class="cc-aide">« Syndic » et « ${esc(titreIci(false))} » restent en tête. Les autres se montent, se descendent ou se retirent ; toute retouche compose « Mes colonnes », que ce navigateur garde pour la prochaine visite.</p>` +
+    p.innerHTML = `<p class="cc-aide">« Syndic » et « ${esc(titreIci(false))} » restent en tête. Les autres se montent, se descendent ou se retirent ici ; sur ordinateur, un en-tête se glisse aussi à sa place. Ce navigateur garde votre choix pour la prochaine visite.</p>` +
       (n ? `<ol class="cc-liste" aria-label="Colonnes montrées, dans l'ordre">${mob.map(ligne).join("")}</ol>` : `<p class="cc-aide">Aucune autre colonne n'est montrée.</p>`) +
-      (ajout ? `<div class="cc-ajout"><span class="trier">Ajouter une colonne</span>${ajout}</div>` : "");
+      (ajout ? `<div class="cc-ajout"><span class="trier">Ajouter une colonne</span>${ajout}</div>` : "") +
+      `<div class="cc-pied"><button type="button" class="lien petit" data-act="col-defaut"${memesCols(etat.cols, COLS_DEFAUT) ? ' aria-disabled="true"' : ""}>Colonnes par défaut</button><button type="button" class="lien petit" data-act="choix-col">Fermer</button></div>`;
   }
   // Sous le tableau, les mêmes définitions en liste : la bulle aide, elle ne cache rien.
   function rendreDefs(vis) {
@@ -2085,6 +2118,94 @@
     location.reload();
   }
   const direNational = (t) => { const el = $("note-national"); if (el) { el.textContent = t; el.hidden = false; } };
+  // « Partager » : le lien de l'écran affiché. L'écran s'écrit après le « # », partie du lien qu'aucun navigateur n'envoie au serveur :
+  // le département, l'onglet, les lieux, la jauge, la construction, le cercle, les étiquettes, le tri, les colonnes, le syndic choisi
+  // et sa fiche (par leur SIREN, jamais un entrepreneur individuel), le mode des décisions, les réglages de la carte et des graphiques.
+  // Jamais le numéro ni l'adresse d'une copropriété. La page qui le reçoit l'applique, puis ne garde dans son adresse que le département.
+  const codeLieu = (m) => (m.k === "dept" ? "d" : m.k === "fr" ? "fr" : m.k === "reg" ? "r" + m.code : m.k === "mars" ? Z[MARS][0] : m.k === "z" ? Z[m.i][0] : "");
+  function lieuDuCode(c) {
+    if (c === "d") return { k: "dept" };
+    if (c === "fr") return { k: "fr" };
+    if (/^r\w+$/.test(c) && REGS.has(c.slice(1))) return { k: "reg", code: c.slice(1) };
+    const zi = Z.findIndex((z) => z[0] === c);
+    return zi < 0 ? null : zi === MARS ? { k: "mars" } : { k: "z", i: zi };
+  }
+  const sirenDe = (e) => (e == null || !ENTS[e] || ENTS[e].ei || !ENTS[e].s ? null : ENTS[e].s);
+  const entDe = (s) => { const e = s ? ENTS.findIndex((x) => !x.ei && x.s === s) : -1; return e < 0 ? null : e; };
+  function lienPartage() {
+    const p = [], pose = (k, v, sauf) => { if (v != null && v !== sauf) p.push(k + "=" + encodeURIComponent(String(v)).replace(/%2C/g, ",").replace(/%3A/g, ":").replace(/%3B/g, ";")); };
+    pose("vue", etat.onglet);
+    pose("lieux", etat.lieux.map(codeLieu).filter(Boolean).join(","), "");
+    pose("taille", etat.tf, -1); pose("constr", etat.constr, -1); pose("rayon", etat.rayon, 0);
+    for (const k of Object.keys(etat.filtres)) pose("f-" + k, etat.filtres[k]);
+    if (etat.triChoisi) { pose("tri", etat.tri); pose("sens", etat.sens); }
+    pose("cols", etat.cols.join(","));
+    pose("syndic", sirenDe(etat.sel)); pose("fiche", sirenDe(etat.fiche));
+    if (etat.modeTab === "decisions") {
+      const f = etat.filtreDec || {};
+      pose("lignes", "decisions");
+      pose("dec", Object.keys(f).map((k) => (k !== "e" ? k + ":" + f[k] : sirenDe(f.e) ? "e:" + sirenDe(f.e) : "")).filter(Boolean).join(";"), "");
+    }
+    pose("couche", etat.couche, "syndics"); pose("couleur", etat.couleur, "type"); pose("fond", etat.fond, ""); pose("parcelles", etat.parcelles ? 1 : null); pose("cadrage", etat.cadrage, "bureaux");
+    pose("graphe", etat.forme, "proposee"); pose("nuage", etat.nuageY, "taille"); pose("noms", etat.noms ? 1 : null);
+    return location.origin + location.pathname + "#" + M.dept + "&" + p.join("&");
+  }
+  // Un écran partagé, lu par l'amorce : chaque valeur est vérifiée ; ce qui ne se reconnaît pas reste au réglage par défaut.
+  function appliquerPartage(s) {
+    const q = new URLSearchParams(s), nbr = (k) => (q.has(k) && q.get(k) !== "" && Number.isFinite(Number(q.get(k))) ? Number(q.get(k)) : null);
+    const dans = (v, a, b) => Number.isInteger(v) && v >= a && v <= b;
+    // sans lieu reconnu, la page reste à son accueil : poser une liste vide ouvrirait le tableau
+    const L = (q.get("lieux") || "").split(",").map(lieuDuCode).filter(Boolean);
+    if (L.length) poserLieux(L);
+    if (dans(nbr("taille"), 0, TRANCHES.length - 1)) etat.tf = nbr("taille");
+    if (dans(nbr("constr"), 0, CLASSES.length - 1)) etat.constr = nbr("constr");
+    if (RAYONS.includes(nbr("rayon"))) etat.rayon = nbr("rayon");
+    // une étiquette ne se pose que si la page connaît sa valeur : un lien abîmé ne vide pas le tableau
+    const connue = { classe: (v) => dans(v, 0, LIB_CLASSE.length - 1), top: (v) => dans(v, 1, ENTS.length), forme: (v) => ENTS.some((x, e) => formeDe(e) === v),
+      decennie: (v) => v === -1 || (dans(v, 1960, new Date().getFullYear()) && v % 10 === 0), effectif: (v) => dans(v, -1, LIB_EFF.length - 1), reseau: (v) => dans(v, -1, LIB_RESEAU.length - 1) };
+    for (const k of Object.keys(FILTRES)) { const v = k === "forme" ? q.get("f-forme") : nbr("f-" + k); if (v != null && connue[k](v)) etat.filtres[k] = v; }
+    if (VUES.includes(q.get("vue"))) Object.assign(etat, { onglet: q.get("vue"), ongletChoisi: true });
+    if (q.has("cols")) {
+      const brut = q.get("cols"), c = brut.split(",").filter((id, k, a) => GROUPE_DE[id] && a.indexOf(id) === k);
+      if (c.length || brut === "") etat.cols = c;
+    }
+    const t = q.get("tri");
+    if (t === "nom" || t === "ici" || GROUPE_DE[t]) { Object.assign(etat, { tri: t, sens: q.get("sens") === "asc" ? "asc" : "desc", triChoisi: true }); triVisible(); }
+    if (AVEC_J && q.get("lignes") === "decisions") {
+      const f = {};
+      for (const x of (q.get("dec") || "").split(";")) {
+        const [k, v] = x.split(":");
+        if (k === "e") { if (entDe(v) != null) f.e = entDe(v); } else if (FILTRES_DEC[k] && v !== "" && Number.isFinite(Number(v))) f[k] = Number(v);
+      }
+      Object.assign(etat, { modeTab: "decisions", filtreDec: f });
+    }
+    if (q.get("couche") === "copros") etat.couche = "copros";
+    if (COULEURS[q.get("couleur")]) etat.couleur = q.get("couleur");
+    if (FONDS[q.get("fond")]) etat.fond = q.get("fond");
+    etat.parcelles = q.get("parcelles") === "1";
+    if (q.has("graphe")) etat.forme = q.get("graphe");
+    if (q.has("nuage")) etat.nuageY = q.get("nuage");
+    etat.noms = q.get("noms") === "1";
+    nouveauxCriteres();
+    const dansListe = (e) => e != null && !!R && R.liste.some((r) => r.e === e), fi = entDe(q.get("fiche")), se = entDe(q.get("syndic"));
+    if (dansListe(fi)) ouvrirFiche(fi);
+    else if (dansListe(se)) choisir(se);
+    const ca = q.get("cadrage");
+    if ((ca === "zone" || ca === "bureaux" || (ca === "syndic" && etat.sel != null)) && ca !== etat.cadrage) { etat.cadrage = ca; majSelection(); }
+  }
+  function partager() {
+    const url = lienPartage(), lien = $("partage-lien");
+    const quoi = "Il reprend l'onglet, les lieux, la tranche de taille, les filtres, le tri, les colonnes et le syndic choisi ; jamais le numéro ni l'adresse de votre copropriété"
+      + (etat.copro != null || etat.adresse ? " : le cercle et les distances y partent du centre du lieu." : ".");
+    const dire = (t, montrer) => { $("partage-note").textContent = t + " " + quoi; lien.value = url; lien.hidden = !montrer; $("partage").hidden = false; if (montrer) { lien.focus(); lien.select(); } };
+    const copier = () => (navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(url) : Promise.reject(new Error("presse-papiers indisponible")))
+      .then(() => dire("Lien de cet écran copié.", false), () => dire("Copiez le lien de cet écran :", true));
+    // au téléphone, la feuille de partage du système ; ailleurs, le presse-papiers, ou le lien à copier soi-même
+    if (navigator.share && window.matchMedia && window.matchMedia("(pointer: coarse)").matches) {
+      return navigator.share({ title: document.title, url }).then(() => dire("Lien de cet écran partagé.", false), (e) => (e && e.name === "AbortError" ? null : copier()));
+    }
+    return copier();
+  }
   // Un numéro absent du département chargé : le fragment de l'index national qui porte ses trois premiers caractères dit son département.
   function chercherNumero(num) {
     const MN = window.SYNDICO_MANIFESTE, f = MN.immat.fragments[num.slice(0, 3)], suite = Number(num.slice(3));
@@ -2193,10 +2314,11 @@
       if (act === "couche") { etat.couche = v; $("carte-bulle").hidden = true; garderFocus(rendreActionsCarte); return dessinerCarte(); }
       if (act === "parcelles") { etat.parcelles = !etat.parcelles; garderFocus(rendreActionsCarte); return dessinerCarte(); }
       if (act === "zoom") { if (v === "recentrer") return recentrer(); return zoomer(v === "plus" ? 1.6 : 1 / 1.6, carte.w / 2, carte.h / 2, true); }
-      if (act === "groupe") return choisirGroupe(v);
-      if (act === "choix-col") { etat.choixCol = !etat.choixCol; return garderFocus(rendreTableau); }
+      if (act === "choix-col") return basculerChoixCol();
       if (act === "aide-col") { etat.aideCol = etat.aideCol === v ? null : v; return garderFocus(rendreTableau); }
       if (act && act.startsWith("col-")) { if (b.getAttribute && b.getAttribute("aria-disabled") === "true") return; return modifierColonnes(act, v); }
+      if (act === "partager") return partager();
+      if (act === "partage-fermer") { $("partage").hidden = true; return $("btn-partager").focus(); }
       if (act === "avis") return basculerAvis($("btn-avis").getAttribute("aria-expanded") !== "true");
       if (act === "filtres") { etat.filtresOuverts = !etat.filtresOuverts; return rendreFiltres(); }
       if (act === "tout") { etat.tout[v] = !etat.tout[v]; return garderFocus(() => { rendreTableau(); rendreGraphiques(); }); }
@@ -2220,6 +2342,56 @@
     $("og-" + etat.onglet).focus();
   });
   for (const id of ["tri-choix", "tri-choix-g"]) $(id).addEventListener("change", (ev) => choisirTri(ev.target.value, true));
+  // Glisser un en-tête mobile, à la souris ou au stylet, le pose devant la colonne où le pointeur tombe ; au doigt, le tableau défile.
+  // Échap annule. Sans souris, le choix des colonnes (« + ») monte et descend chacune.
+  const teteTab = $("tab-tete"), defileTab = $("tab-defile");
+  let prise = null, apresGlisse = false;
+  function poserRepere(th) {
+    const b = $("col-repere"), d = defileTab.getBoundingClientRect(), mob = teteTab.querySelectorAll("th.mobile"), r = (th || mob[mob.length - 1]).getBoundingClientRect();
+    b.style.left = Math.round((th ? r.left : r.right) - d.left + defileTab.scrollLeft) + "px";
+    b.style.height = Math.round(teteTab.getBoundingClientRect().height) + "px";
+    b.hidden = false;
+  }
+  function finirGlisse(poser) {
+    const p = prise;
+    prise = null;
+    $("col-repere").hidden = true;
+    if (!p || !p.bouge) return;
+    p.th.classList.remove("glisse");
+    teteTab.parentNode.classList.remove("en-glisse");
+    try { teteTab.releasePointerCapture(p.pid); } catch (e) { /* déjà rendue */ }
+    // le clic qui suit le lâcher ne trie pas
+    apresGlisse = true;
+    window.setTimeout(() => { apresGlisse = false; }, 0);
+    if (poser) modifierColonnes("col-vers", p.id, p.avant);
+  }
+  teteTab.addEventListener("pointerdown", (ev) => {
+    if (ev.button !== 0 || ev.pointerType === "touch") return;
+    const th = ev.target.closest && ev.target.closest("th.mobile[data-col]");
+    if (th && !ev.target.closest(".aide-col")) prise = { id: th.dataset.col, th, pid: ev.pointerId, x: ev.clientX, y: ev.clientY, bouge: false, avant: null };
+  });
+  teteTab.addEventListener("pointermove", (ev) => {
+    if (!prise || ev.pointerId !== prise.pid) return;
+    if (!prise.bouge) {
+      if (Math.hypot(ev.clientX - prise.x, ev.clientY - prise.y) < 6) return;
+      prise.bouge = true;
+      prise.th.classList.add("glisse");
+      teteTab.parentNode.classList.add("en-glisse");
+      try { teteTab.setPointerCapture(ev.pointerId); } catch (e) { /* sans capture, le geste s'arrête au bord du tableau */ }
+    }
+    ev.preventDefault();
+    // près d'un bord, le tableau défile sous le pointeur
+    const d = defileTab.getBoundingClientRect();
+    if (ev.clientX < d.left + 32) defileTab.scrollLeft -= 14; else if (ev.clientX > d.right - 32) defileTab.scrollLeft += 14;
+    const th = [...teteTab.querySelectorAll("th.mobile")].find((t) => { const r = t.getBoundingClientRect(); return ev.clientX < r.left + r.width / 2; });
+    prise.avant = th ? th.dataset.col : null;
+    poserRepere(th);
+  });
+  teteTab.addEventListener("pointerup", (ev) => { if (prise && ev.pointerId === prise.pid) finirGlisse(true); });
+  teteTab.addEventListener("pointercancel", () => finirGlisse(false));
+  teteTab.addEventListener("click", (ev) => { if (apresGlisse) { apresGlisse = false; ev.preventDefault(); ev.stopPropagation(); } }, true);
+  document.addEventListener("keydown", (ev) => { if (ev.key === "Escape" && prise && prise.bouge) finirGlisse(false); });
+  $("choix-col").addEventListener("keydown", (ev) => { if (ev.key === "Escape" && etat.choixCol) { ev.preventDefault(); basculerChoixCol(true); } });
   // Les graphiques : l'axe vertical du nuage, et la bulle d'un point survolé ou atteint au clavier, écrite en texte, jamais en balises.
   $("graph-corps").addEventListener("change", (ev) => {
     if (ev.target.id !== "nuage-y") return;
@@ -2377,7 +2549,7 @@
   new MutationObserver(dessinerBientot).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
   // Seule la rangée des onglets reste en haut : le bandeau remonte de la hauteur de ce qui la précède. Une fiche ouverte sur
   // écran étroit cache les onglets : le bandeau remonte alors tout entier, et la fiche a l'écran.
-  const retraitBandeau = () => { const s = $("bandeau").style, o = $("onglets"); if (s.setProperty) s.setProperty("--bandeau-retrait", Math.max(0, o.hidden ? $("bandeau").offsetHeight : o.offsetTop - 6) + "px"); };
+  const retraitBandeau = () => { const s = $("bandeau").style, vide = $("onglets").hidden && $("btn-partager").hidden; if (s.setProperty) s.setProperty("--bandeau-retrait", Math.max(0, vide ? $("bandeau").offsetHeight : $("onglets-ligne").offsetTop - 6) + "px"); };
   if (window.ResizeObserver) new ResizeObserver(retraitBandeau).observe($("bandeau"));
 
   // ---------- le pied de page : la méthode, les sources et les limites, écrites avec les définitions mêmes de la page
@@ -2433,9 +2605,12 @@
   if (NATIONAL) {
     const a = window.SYNDICO_AMORCE || {}, X = window.SYNDICO_COMMUNES;
     window.SYNDICO_AMORCE = null;
+    $("btn-partager").hidden = false;
     if (a.depuis && a.depuis !== M.dept && DEPS.has(a.depuis)) direNational(`La page a chargé ${NOM_CH} à la place de ${DEPS.get(a.depuis).nom} (${a.depuis}) : elle ne réunit pas encore deux départements.`);
     const i = a.copro ? IMMAT.get(a.copro) : null;
-    if (i != null) { $("copro").value = a.copro; prendreCopro(i); nouveauxCriteres(); }
+    // un écran partagé : son lien, lu par l'amorce, s'applique une fois le département chargé
+    if (a.partage) appliquerPartage(a.partage);
+    else if (i != null) { $("copro").value = a.copro; prendreCopro(i); nouveauxCriteres(); }
     else if (a.lieu) {
       const l = a.cp ? lieuDuCodePostal(a.cp) : null, zi = Z.findIndex((z) => z[0] === a.lieu);
       const zn = l ? l.zone : a.lieu === M.dept ? { k: "dept" } : MARS >= 0 && zi === MARS ? { k: "mars" } : zi >= 0 ? { k: "z", i: zi } : null;
@@ -2446,7 +2621,8 @@
       poserLieux([zn || { k: "dept" }]);
       nouveauxCriteres();
     }
-    // le bouton « précédent » du navigateur revient au département d'avant : la page le recharge
-    window.addEventListener("hashchange", () => { const d = decodeURIComponent(location.hash.slice(1)); if (d && d !== M.dept) location.reload(); });
+    // le bouton « précédent » du navigateur revient au département d'avant : la page le recharge ; un lien partagé collé dans la
+    // barre d'adresse, de même
+    window.addEventListener("hashchange", () => { const d = location.hash.slice(1); if (d && d !== M.dept) location.reload(); });
   }
 })();
